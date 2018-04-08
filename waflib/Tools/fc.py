@@ -47,6 +47,10 @@ def modfile(conf, name):
 		'UPPER.mod' :modname.upper() + suffix.lower(),
 		'UPPER'     :modname.upper() + suffix.upper()}[conf.env.FC_MOD_CAPITALIZATION or 'lower']
 
+@conf
+def is_fortran_mod(conf, node):
+	return str(node).lower().endswith('.mod')
+
 def get_fortran_tasks(tsk):
 	"""
 	Obtains all fortran tasks from the same build group. Those tasks must not have
@@ -142,7 +146,7 @@ class fc(Task.Task):
 				# ourselves as task.dep_nodes (additional input nodes)
 				tmp = []
 				for t in outs[k]:
-					tmp.extend(t.outputs)
+					tmp.extend(f for f in t.outputs if bld.is_fortran_mod(f))
 				a.dep_nodes.extend(tmp)
 				a.dep_nodes.sort(key=lambda x: x.abspath())
 
