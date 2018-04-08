@@ -7,6 +7,7 @@
 Fortran support
 """
 
+import os, re
 from waflib import Utils, Task, Errors
 from waflib.Tools import ccroot, fc_config, fc_scan
 from waflib.TaskGen import extension
@@ -61,6 +62,24 @@ def get_fortran_tasks(tsk):
 	bld = tsk.generator.bld
 	tasks = bld.get_tasks_group(bld.get_group_idx(tsk.generator))
 	return [x for x in tasks if isinstance(x, fc) and not getattr(x, 'nomod', None) and not getattr(x, 'mod_fortran_done', None)]
+
+@conf
+def moddir(conf, tsk):
+	"""
+	For a given task, return the the name of the module directory as given
+	in the module_dir inputs for that task as a string. Note that the
+	module directory should be provided as an absolute path.
+	"""
+	try:
+		module_dir=tsk.generator.module_dir
+	except:
+		module_dir = None
+	if module_dir is not None:
+		if not os.path.isdir(module_dir):
+			os.makedirs(module_dir)
+		return os.path.relpath(module_dir, conf.env.PREFIX)
+	return ""
+
 
 class fc(Task.Task):
 	"""
@@ -118,8 +137,10 @@ class fc(Task.Task):
 			key = tsk.uid()
 			for x in bld.raw_deps[key]:
 				if x.startswith('MOD@'):
-					name = bld.modfile(x.replace('MOD@', ''))
-					node = bld.srcnode.find_or_declare(name)
+					name=os.path.join(
+                                            bld.moddir(tsk),
+                                            bld.modfile(x.replace('MOD@','')))
+					node=bld.srcnode.find_or_declare(name)
 					tsk.set_outputs(node)
 					outs[node].add(tsk)
 
@@ -128,8 +149,10 @@ class fc(Task.Task):
 			key = tsk.uid()
 			for x in bld.raw_deps[key]:
 				if x.startswith('USE@'):
-					name = bld.modfile(x.replace('USE@', ''))
-					node = bld.srcnode.find_resource(name)
+					name=os.path.join(
+                                            bld.moddir(tsk),
+                                            bld.modfile(x.replace('USE@','')))
+					node=bld.srcnode.find_resource(name)
 					if node and node not in tsk.outputs:
 						if not node in bld.node_deps[key]:
 							bld.node_deps[key].append(node)
