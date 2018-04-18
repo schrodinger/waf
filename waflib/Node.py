@@ -800,6 +800,14 @@ class Node(object):
 				return self.ctx.bldnode.make_node(lst)
 			lst.append(cur.name)
 			cur = cur.parent
+		# Allow creation of nodes in $SCHRODINGER, even if not under build
+		# directory (e.g. $SCHRODINGER/internal/bin/foo.exe), if we try to
+		# create a file that is outside $SCHRODINGER, it will create in
+		# <bld_dir>/__root__/abspath/to/file to avoid contamination of
+		# filesystem.
+		schrodinger_node = find_schrodinger_node(self.ctx)
+		if self.is_child_of(schrodinger_node):
+			return self
 		# the file is external to the current project, make a fake root in the current build directory
 		lst.reverse()
 		if lst and Utils.is_win32 and len(lst[0]) == 2 and lst[0].endswith(':'):
@@ -958,6 +966,18 @@ class Node(object):
 					return ret
 				raise
 		return ret
+
+
+def find_schrodinger_node(bld):
+	"""Locate $SCHRODINGER in a relative path"""
+	schrodinger_node = bld.bldnode
+	absolute_schrodinger = os.path.realpath(os.environ['SCHRODINGER'])
+	while schrodinger_node:
+		if os.path.realpath(schrodinger_node.abspath()) == absolute_schrodinger:
+			break
+		schrodinger_node = schrodinger_node.parent
+	return schrodinger_node
+
 
 pickle_lock = Utils.threading.Lock()
 """Lock mandatory for thread-safe node serialization"""
