@@ -215,20 +215,16 @@ class qxx(Task.classes['cxx']):
 			base2 = d[:-4]
 
 			# foo.moc from foo.cpp
-			prefix = node.name[:node.name.rfind('.')]
-			if base2 == prefix:
-				h_node = node
-			else:
-				# this deviates from the standard
-				# if bar.cpp includes foo.moc, then assume it is from foo.h
-				for x in include_nodes:
-					for e in MOC_H:
-						h_node = x.find_node(base2 + e)
-						if h_node:
-							break
-					else:
-						continue
-					break
+			# this deviates from the standard
+			# if bar.cpp includes foo.moc, then assume it is from foo.h
+			for x in include_nodes:
+				for e in MOC_H:
+					h_node = x.find_node(base2 + e)
+					if h_node:
+						break
+				else:
+					continue
+				break
 			if h_node:
 				m_node = h_node.change_ext('.moc')
 			else:
