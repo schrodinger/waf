@@ -493,6 +493,9 @@ def configure(self):
 	if not has_xml:
 		Logs.error('No xml.sax support was found, rcc dependencies will be incomplete!')
 
+	if self.env.NO_QT5_DETECT:
+		return
+
 	# Qt5 may be compiled with '-reduce-relocations' which requires dependent programs to have -fPIE or -fPIC?
 	frag = '#include <QMap>\nint main(int argc, char **argv) {QMap<int,int> m;return m.keys().size();}\n'
 	uses = 'QT5CORE'
