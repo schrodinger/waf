@@ -395,12 +395,38 @@ class rcc(Task.Task):
 				names.append(x)
 		return (nodes, names)
 
+	def quote_flag(self, x):
+		"""
+		Override Task.quote_flag. QT parses the argument files
+		differently than cl.exe and link.exe
+
+		:param x: flag
+		:type x: string
+		:return: quoted flag
+		:rtype: string
+		"""
+		return x
+
+
 class moc(Task.Task):
 	"""
 	Creates ``.moc`` files
 	"""
 	color   = 'BLUE'
 	run_str = '${QT_MOC} ${MOC_FLAGS} ${MOCCPPPATH_ST:INCPATHS} ${MOCDEFINES_ST:DEFINES} ${SRC} ${MOC_ST} ${TGT}'
+
+	def quote_flag(self, x):
+		"""
+		Override Task.quote_flag. QT parses the argument files
+		differently than cl.exe and link.exe
+
+		:param x: flag
+		:type x: string
+		:return: quoted flag
+		:rtype: string
+		"""
+		return x
+
 
 class ui5(Task.Task):
 	"""
@@ -450,6 +476,9 @@ def configure(self):
 
 	if 'COMPILER_CXX' not in self.env:
 		self.fatal('No CXX compiler defined: did you forget to configure compiler_cxx first?')
+
+	if self.env.NO_QT5_DETECT:
+		return
 
 	# Qt5 may be compiled with '-reduce-relocations' which requires dependent programs to have -fPIE or -fPIC?
 	frag = '#include <QApplication>\nint main(int argc, char **argv) {return 0;}\n'
