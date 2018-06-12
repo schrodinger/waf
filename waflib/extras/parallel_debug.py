@@ -285,7 +285,7 @@ def set_running(self, by, tsk):
 			i = cache[tsk]
 			del cache[tsk]
 
-		self.taskinfo.put( (i, id(tsk), time.time(), tsk.__class__.__name__, self.processed, self.count, by, ",".join(map(str, tsk.outputs)))  )
+		self.taskinfo.put( (i, id(tsk), time.time(), tsk.__class__.__name__, self.processed, self.count, by, str(tsk))  )
 Runner.Parallel.set_running = set_running
 
 def name2class(name):
