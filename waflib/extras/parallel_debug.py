@@ -40,7 +40,7 @@ svg.addEventListener('mouseover', function(e) {
 	if (x) {
 		g.setAttribute('class', g.getAttribute('class') + ' over');
 		x.setAttribute('class', x.getAttribute('class') + ' over');
-		showInfo(e, g.id, e.target.attributes.tooltip.value);
+		showInfo(e, g.id, e.target.attributes.outputs.value, e.target.attributes.taskstr.value, e.target.attributes.time.value);
 	}
 }, false);
 
@@ -54,21 +54,35 @@ svg.addEventListener('mouseout', function(e) {
 		}
 }, false);
 
-function showInfo(evt, txt, details) {
+function showInfo(evt, cls, outputs, str, time) {
 ${if project.tooltip}
 	tooltip = document.getElementById('tooltip');
 
-	var t = document.getElementById('tooltiptext');
-	t.firstChild.data = txt + " " + details;
+	var tcls = document.getElementById('tooltipcls');
+	tcls.firstChild.data = "Task: " + cls;
+
+	var tstr = document.getElementById('tooltipstr');
+	tstr.firstChild.data = str;
+
+	var ttime = document.getElementById('tooltiptime');
+	ttime.firstChild.data = time + " s";
+
+	var toutputs = document.getElementById('tooltipoutputs');
+	toutputs.firstChild.data = "Outputs: " + outputs;
+
+	var textlength = Math.max(tcls.getComputedTextLength(), tstr.getComputedTextLength(), ttime.getComputedTextLength(), toutputs.getComputedTextLength())
+
+    var svgwidth = document.getElementById('svg602').attributes.width.value
 
 	var x = evt.clientX + 9;
-	if (x > 250) { x -= t.getComputedTextLength() + 16; }
+	if (x > (svgwidth - textlength)) { x -= textlength + 16; }
+	x = Math.max(x, 5);
 	var y = evt.clientY + 20;
 	tooltip.setAttribute("transform", "translate(" + x + "," + y + ")");
 	tooltip.setAttributeNS(null, "visibility", "visible");
 
 	var r = document.getElementById('tooltiprect');
-	r.setAttribute('width', t.getComputedTextLength() + 6);
+	r.setAttribute('width', textlength + 6);
 ${endif}
 }
 
@@ -92,7 +106,7 @@ ${endif}
 ${for cls in project.groups}
   <g id='${cls.classname}'>
     ${for rect in cls.rects}
-    <rect x='${rect.x}' y='${rect.y}' width='${rect.width}' height='${rect.height}' tooltip='${rect.name}' style="font-size:10;fill:${rect.color};fill-rule:evenodd;stroke:#000000;stroke-width:0.4;" />
+    <rect x='${rect.x}' y='${rect.y}' width='${rect.width}' height='${rect.height}' outputs='${rect.outputs}' taskstr='${rect.taskstr}' time='${rect.time}' style="font-size:10;fill:${rect.color};fill-rule:evenodd;stroke:#000000;stroke-width:0.4;" />
     ${endfor}
   </g>
 ${endfor}
@@ -108,8 +122,13 @@ ${endfor}
 
 ${if project.tooltip}
   <g transform="translate(0,0)" visibility="hidden" id="tooltip">
-       <rect id="tooltiprect" y="-15" x="-3" width="1" height="20" style="stroke:black;fill:#edefc2;stroke-width:1"/>
-       <text id="tooltiptext" style="font-family:Arial; font-size:12;fill:black;"> </text>
+       <rect id="tooltiprect" y="-15" x="-3" width="1" height="72" style="stroke:black;fill:#edefc2;stroke-width:1"/>
+       <text id="tooltiptext" style="font-family:Arial; font-size:12;fill:black;">
+         <tspan id="tooltipcls" x="0" dy="0"> </tspan>
+         <tspan id="tooltipstr" x="0" dy="16"> </tspan>
+         <tspan id="tooltiptime" x="0" dy="16"> </tspan>
+         <tspan id="tooltipoutputs" x="0" dy="16"> </tspan>
+       </text>
   </g>
 ${endif}
 
@@ -285,7 +304,7 @@ def set_running(self, by, tsk):
 			i = cache[tsk]
 			del cache[tsk]
 
-		self.taskinfo.put( (i, id(tsk), time.time(), tsk.__class__.__name__, self.processed, self.count, by, str(tsk))  )
+		self.taskinfo.put( (i, id(tsk), time.time(), tsk.__class__.__name__, self.processed, self.count, by, ",".join(map(str, tsk.outputs)), str(tsk))  )
 Runner.Parallel.set_running = set_running
 
 def name2class(name):
@@ -366,7 +385,7 @@ def make_picture(producer):
 				end = line[2]
 				#print id, thread_id, begin, end
 				#acc.append(  ( 10*thread_id, 10*(thread_id+1), 10*begin, 10*end ) )
-				acc.append( (BAND * begin, BAND*thread_id, BAND*end - BAND*begin, BAND, line[3], line[7]) )
+				acc.append( (BAND * begin, BAND*thread_id, BAND*end - BAND*begin, BAND, line[3], line[7], line[8], end - begin) )
 				break
 
 	if Options.options.dmaxtime < 0.1:
@@ -400,11 +419,11 @@ def make_picture(producer):
 	model.title_y = gheight + - 5
 
 	groups = {}
-	for (x, y, w, h, clsname, name) in acc:
+	for (x, y, w, h, clsname, outputs, taskstr, time) in acc:
 		try:
-			groups[clsname].append((x, y, w, h, name))
+			groups[clsname].append((x, y, w, h, outputs, taskstr, time))
 		except:
-			groups[clsname] = [(x, y, w, h, name)]
+			groups[clsname] = [(x, y, w, h, outputs, taskstr, time)]
 
 	# groups of rectangles (else js highlighting is slow)
 	model.groups = []
@@ -413,14 +432,16 @@ def make_picture(producer):
 		model.groups.append(g)
 		g.classname = name2class(cls)
 		g.rects = []
-		for (x, y, w, h, name) in groups[cls]:
+		for (x, y, w, h, name, taskstr, time) in groups[cls]:
 			r = tobject()
 			g.rects.append(r)
 			r.x = 2 + x * ratio
 			r.y = 2 + y
 			r.width = w * ratio
 			r.height = h
-			r.name = name
+			r.outputs = outputs
+			r.taskstr = taskstr
+			r.time = '{:0.3f}'.format(time)
 			r.color = map_to_color(cls)
 
 	cnt = THREAD_AMOUNT
