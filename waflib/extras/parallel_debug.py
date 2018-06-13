@@ -432,7 +432,7 @@ def make_picture(producer):
 		model.groups.append(g)
 		g.classname = name2class(cls)
 		g.rects = []
-		for (x, y, w, h, name, taskstr, time) in groups[cls]:
+		for (x, y, w, h, outputs, taskstr, time) in groups[cls]:
 			r = tobject()
 			g.rects.append(r)
 			r.x = 2 + x * ratio
