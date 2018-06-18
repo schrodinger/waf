@@ -346,7 +346,7 @@ def make_picture(producer):
 		thread_count += x[6]
 		acc.append("%d %d %f %r %d %d %d %s" % (x[0], x[1], x[2] - ini, x[3], x[4], x[5], thread_count, x[7]))
 
-	data_node = producer.bld.path.make_node('pdebug.dat')
+	data_node = producer.bld.path.make_node('pdebug-{}.dat'.format(producer.bld.cmd))
 	data_node.write('\n'.join(acc))
 
 	tmp = [lst[:2] + [float(lst[2]) - ini] + lst[3:] for lst in tmp]
@@ -468,7 +468,7 @@ def make_picture(producer):
 	template1 = compile_template(SVG_TEMPLATE)
 	txt = template1(model)
 
-	node = producer.bld.path.make_node('pdebug.svg')
+	node = producer.bld.path.make_node('pdebug-{}.svg'.format(producer.bld.cmd))
 	node.write(txt)
 	Logs.warn('Created the diagram %r', node)
 
