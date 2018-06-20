@@ -800,14 +800,23 @@ class Node(object):
 				return self.ctx.bldnode.make_node(lst)
 			lst.append(cur.name)
 			cur = cur.parent
+
 		# Allow creation of nodes in $SCHRODINGER, even if not under build
 		# directory (e.g. $SCHRODINGER/internal/bin/foo.exe), if we try to
 		# create a file that is outside $SCHRODINGER, it will create in
 		# <bld_dir>/__root__/abspath/to/file to avoid contamination of
 		# filesystem.
-		schrodinger_node = find_schrodinger_node(self.ctx)
-		if self.is_child_of(schrodinger_node):
+		schrodinger_path = os.path.realpath(os.environ['SCHRODINGER'])
+		self_path = os.path.realpath(self.abspath())
+
+		if sys.platform == 'win32':
+			# Windows file paths are case insensitive, lowercase before comparing
+			schrodinger_path = schrodinger_path.lower()
+			self_path = self_path.lower()
+
+		if self_path.startswith(schrodinger_path):
 			return self
+
 		# the file is external to the current project, make a fake root in the current build directory
 		lst.reverse()
 		if lst and Utils.is_win32 and len(lst[0]) == 2 and lst[0].endswith(':'):
