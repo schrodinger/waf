@@ -771,15 +771,20 @@ class Node(object):
 		# <bld_dir>/__root__/abspath/to/file to avoid contamination of
 		# filesystem.
 		schrodinger_path = os.path.realpath(os.environ['SCHRODINGER'])
+		schrodinger_src_path = os.path.realpath(os.environ['SCHRODINGER_SRC'])
 		self_path = os.path.realpath(self.abspath())
 
 		if sys.platform == 'win32':
 			# Windows file paths are case insensitive, lowercase before comparing
 			schrodinger_path = schrodinger_path.lower()
+			schrodinger_src_path = schrodinger_src_path.lower()
 			self_path = self_path.lower()
 
 		if self_path.startswith(schrodinger_path):
 			return self
+
+		if self_path.startswith(schrodinger_src_path):
+			return self.ctx.bldnode.make_node(os.path.relpath(self_path, start=schrodinger_src_path))
 
 		# the file is external to the current project, make a fake root in the current build directory
 		lst.reverse()
