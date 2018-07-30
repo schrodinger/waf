@@ -5,6 +5,8 @@
 
 import re
 
+from waflib import Utils
+
 INC_REGEX = """(?:^|['">]\s*;)\s*(?:|#\s*)INCLUDE\s+(?:\w+_)?[<"'](.+?)(?=["'>])"""
 USE_REGEX = """(?:^|;)\s*USE(?:\s+|(?:(?:\s*,\s*(?:NON_)?INTRINSIC)?\s*::))\s*(\w+)"""
 MOD_REGEX = """(?:^|;)\s*MODULE(?!\s*PROCEDURE)(?:\s+|(?:(?:\s*,\s*(?:NON_)?INTRINSIC)?\s*::))\s*(\w+)"""
@@ -12,6 +14,8 @@ MOD_REGEX = """(?:^|;)\s*MODULE(?!\s*PROCEDURE)(?:\s+|(?:(?:\s*,\s*(?:NON_)?INTR
 re_inc = re.compile(INC_REGEX, re.I)
 re_use = re.compile(USE_REGEX, re.I)
 re_mod = re.compile(MOD_REGEX, re.I)
+
+DEPS_CACHE_SIZE = 100000
 
 class fortran_parser(object):
 	"""
@@ -43,22 +47,31 @@ class fortran_parser(object):
 		:return: lists representing the includes, the modules used, and the modules created by a fortran file
 		:rtype: tuple of list of strings
 		"""
-		txt = node.read()
-		incs = []
-		uses = []
-		mods = []
-		for line in txt.splitlines():
-			# line by line regexp search? optimize?
-			m = re_inc.search(line)
-			if m:
-				incs.append(m.group(1))
-			m = re_use.search(line)
-			if m:
-				uses.append(m.group(1))
-			m = re_mod.search(line)
-			if m:
-				mods.append(m.group(1))
-		return (incs, uses, mods)
+		try:
+			cache = node.ctx.cache_fc_scan_deps
+		except AttributeError:
+			cache = node.ctx.cache_fc_scan_deps = Utils.lru_cache(DEPS_CACHE_SIZE)
+		try:
+			return cache[node]
+		except KeyError:
+			txt = node.read()
+			incs = []
+			uses = []
+			mods = []
+			for line in txt.splitlines():
+				# line by line regexp search? optimize?
+				m = re_inc.search(line)
+				if m:
+					incs.append(m.group(1))
+				m = re_use.search(line)
+				if m:
+					uses.append(m.group(1))
+				m = re_mod.search(line)
+				if m:
+					mods.append(m.group(1))
+			ret = (incs, uses, mods)
+			cache[node] = ret
+			return ret
 
 	def start(self, node):
 		"""
@@ -77,11 +90,11 @@ class fortran_parser(object):
 		Processes a single file during dependency parsing. Extracts files used
 		modules used and modules provided.
 		"""
+		if node in self.seen:
+			return
 		incs, uses, mods = self.find_deps(node)
+		self.seen.append(node)
 		for x in incs:
-			if x in self.seen:
-				continue
-			self.seen.append(x)
 			self.tryfind_header(x)
 
 		for x in uses:
