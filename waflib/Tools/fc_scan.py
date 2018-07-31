@@ -3,6 +3,7 @@
 # DC 2008
 # Thomas Nagy 2016-2018 (ita)
 
+from collections import namedtuple
 import re
 
 from waflib import Utils
@@ -11,11 +12,13 @@ INC_REGEX = """(?:^|['">]\s*;)\s*(?:|#\s*)INCLUDE\s+(?:\w+_)?[<"'](.+?)(?=["'>])
 USE_REGEX = """(?:^|;)\s*USE(?:\s+|(?:(?:\s*,\s*(?:NON_)?INTRINSIC)?\s*::))\s*(\w+)"""
 MOD_REGEX = """(?:^|;)\s*MODULE(?!\s*PROCEDURE)(?:\s+|(?:(?:\s*,\s*(?:NON_)?INTRINSIC)?\s*::))\s*(\w+)"""
 
-re_inc = re.compile(INC_REGEX, re.I)
-re_use = re.compile(USE_REGEX, re.I)
-re_mod = re.compile(MOD_REGEX, re.I)
+re_inc = re.compile(INC_REGEX, re.I|re.M)
+re_use = re.compile(USE_REGEX, re.I|re.M)
+re_mod = re.compile(MOD_REGEX, re.I|re.M)
 
 DEPS_CACHE_SIZE = 100000
+
+Deps = namedtuple('Deps', ['incs', 'uses', 'mods'])
 
 class fortran_parser(object):
 	"""
@@ -26,7 +29,7 @@ class fortran_parser(object):
 	* the module names used by the fortran files
 	"""
 	def __init__(self, incpaths):
-		self.seen = []
+		self.seen = set()
 		"""Files already parsed"""
 
 		self.nodes = []
@@ -55,23 +58,13 @@ class fortran_parser(object):
 			return cache[node]
 		except KeyError:
 			txt = node.read()
-			incs = []
-			uses = []
-			mods = []
-			for line in txt.splitlines():
-				# line by line regexp search? optimize?
-				m = re_inc.search(line)
-				if m:
-					incs.append(m.group(1))
-				m = re_use.search(line)
-				if m:
-					uses.append(m.group(1))
-				m = re_mod.search(line)
-				if m:
-					mods.append(m.group(1))
-			ret = (incs, uses, mods)
-			cache[node] = ret
-			return ret
+			deps = Deps(
+				incs=re_inc.findall(txt),
+				uses=re_use.findall(txt),
+				mods=re_mod.findall(txt),
+			)
+			cache[node] = deps
+			return deps
 
 	def start(self, node):
 		"""
@@ -92,17 +85,17 @@ class fortran_parser(object):
 		"""
 		if node in self.seen:
 			return
-		incs, uses, mods = self.find_deps(node)
-		self.seen.append(node)
-		for x in incs:
+		deps = self.find_deps(node)
+		self.seen.add(node)
+		for x in deps.incs:
 			self.tryfind_header(x)
 
-		for x in uses:
+		for x in deps.uses:
 			name = "USE@%s" % x
 			if not name in self.names:
 				self.names.append(name)
 
-		for x in mods:
+		for x in deps.mods:
 			name = "MOD@%s" % x
 			if not name in self.names:
 				self.names.append(name)
