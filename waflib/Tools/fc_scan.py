@@ -3,17 +3,24 @@
 # DC 2008
 # Thomas Nagy 2016-2018 (ita)
 
+from collections import namedtuple
 import re
+
+from waflib import Utils
 
 INC_REGEX = r"""(?:^|['">]\s*;)\s*(?:|#\s*)INCLUDE\s+(?:\w+_)?[<"'](.+?)(?=["'>])"""
 USE_REGEX = r"""(?:^|;)\s*USE(?:\s+|(?:(?:\s*,\s*(?:NON_)?INTRINSIC)?\s*::))\s*(\w+)"""
 MOD_REGEX = r"""(?:^|;)\s*MODULE(?!\s+(?:PROCEDURE|SUBROUTINE|FUNCTION))\s+(\w+)"""
 SMD_REGEX = r"""(?:^|;)\s*SUBMODULE\s*\(([\w:]+)\)\s*(\w+)"""
 
-re_inc = re.compile(INC_REGEX, re.I)
-re_use = re.compile(USE_REGEX, re.I)
-re_mod = re.compile(MOD_REGEX, re.I)
-re_smd = re.compile(SMD_REGEX, re.I)
+re_inc = re.compile(INC_REGEX, re.I|re.M)
+re_use = re.compile(USE_REGEX, re.I|re.M)
+re_mod = re.compile(MOD_REGEX, re.I|re.M)
+re_smd = re.compile(SMD_REGEX, re.I|re.M)
+
+DEPS_CACHE_SIZE = 100000
+
+Deps = namedtuple('Deps', ['incs', 'uses', 'mods'])
 
 class fortran_parser(object):
 	"""
@@ -24,7 +31,7 @@ class fortran_parser(object):
 	* the module names used by the fortran files
 	"""
 	def __init__(self, incpaths):
-		self.seen = []
+		self.seen = set()
 		"""Files already parsed"""
 
 		self.nodes = []
@@ -45,26 +52,22 @@ class fortran_parser(object):
 		:return: lists representing the includes, the modules used, and the modules created by a fortran file
 		:rtype: tuple of list of strings
 		"""
-		txt = node.read()
-		incs = []
-		uses = []
-		mods = []
-		for line in txt.splitlines():
-			# line by line regexp search? optimize?
-			m = re_inc.search(line)
-			if m:
-				incs.append(m.group(1))
-			m = re_use.search(line)
-			if m:
-				uses.append(m.group(1))
-			m = re_mod.search(line)
-			if m:
-				mods.append(m.group(1))
-			m = re_smd.search(line)
-			if m:
-				uses.append(m.group(1))
-				mods.append('{0}:{1}'.format(m.group(1),m.group(2)))
-		return (incs, uses, mods)
+		try:
+			cache = node.ctx.cache_fc_scan_deps
+		except AttributeError:
+			cache = node.ctx.cache_fc_scan_deps = Utils.lru_cache(DEPS_CACHE_SIZE)
+		try:
+			return cache[node]
+		except KeyError:
+			txt = node.read()
+			smds = re_smd.findall(txt)
+			deps = Deps(
+				incs=re_inc.findall(txt),
+				uses=re_use.findall(txt) + [smd[0] for smd in smds],
+				mods=re_mod.findall(txt) + [':'.join(smd) for smd in smds],
+			)
+			cache[node] = deps
+			return deps
 
 	def start(self, node):
 		"""
@@ -83,19 +86,19 @@ class fortran_parser(object):
 		Processes a single file during dependency parsing. Extracts files used
 		modules used and modules provided.
 		"""
-		incs, uses, mods = self.find_deps(node)
-		for x in incs:
-			if x in self.seen:
-				continue
-			self.seen.append(x)
+		if node in self.seen:
+			return
+		deps = self.find_deps(node)
+		self.seen.add(node)
+		for x in deps.incs:
 			self.tryfind_header(x)
 
-		for x in uses:
+		for x in deps.uses:
 			name = "USE@%s" % x
 			if not name in self.names:
 				self.names.append(name)
 
-		for x in mods:
+		for x in deps.mods:
 			name = "MOD@%s" % x
 			if not name in self.names:
 				self.names.append(name)
