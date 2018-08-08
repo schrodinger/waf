@@ -17,6 +17,7 @@ re_use = re.compile(USE_REGEX, re.I|re.M)
 re_mod = re.compile(MOD_REGEX, re.I|re.M)
 
 DEPS_CACHE_SIZE = 100000
+FILE_CACHE_SIZE = 100000
 
 Deps = namedtuple('Deps', ['incs', 'uses', 'mods'])
 
@@ -88,6 +89,9 @@ class fortran_parser(object):
 		deps = self.find_deps(node)
 		self.seen.add(node)
 		for x in deps.incs:
+			if x in self.seen:
+				continue
+			self.seen.add(x)
 			self.tryfind_header(x)
 
 		for x in deps.uses:
@@ -109,7 +113,7 @@ class fortran_parser(object):
 		"""
 		found = None
 		for n in self.incpaths:
-			found = n.find_resource(filename)
+			found = self.cached_find_resource(n, filename)
 			if found:
 				self.nodes.append(found)
 				self.waiting.append(found)
@@ -118,3 +122,26 @@ class fortran_parser(object):
 			if not filename in self.names:
 				self.names.append(filename)
 
+	def cached_find_resource(self, node, filename):
+		"""
+		Find a file from the input directory
+
+		:param node: directory
+		:type node: :py:class:`waflib.Node.Node`
+		:param filename: header to find
+		:type filename: string
+		:return: the node if found, or None
+		:rtype: :py:class:`waflib.Node.Node`
+		"""
+		try:
+			cache = node.ctx.cache_fc_scan_node
+		except AttributeError:
+			cache = node.ctx.cache_fc_scan_node = Utils.lru_cache(FILE_CACHE_SIZE)
+
+		key = (node, filename)
+		try:
+			return cache[key]
+		except KeyError:
+			ret = node.find_resource(filename)
+			cache[key] = ret
+			return ret
