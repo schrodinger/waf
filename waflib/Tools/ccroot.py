@@ -484,6 +484,8 @@ def propagate_uselib_vars(self):
 			val = env['%s_%s' % (var, x)]
 			if val:
 				app(var, val)
+	if getattr(self, 'lib_sorting', True):
+		env.LIB = list(sorted(set(env.LIB)))
 
 # ============ the code above must not know anything about import libs ==========
 
@@ -772,4 +774,3 @@ def set_full_paths_hpux(self):
 			else:
 				lst.append(os.path.normpath(os.path.join(base, x)))
 		self.env[var] = lst
-
