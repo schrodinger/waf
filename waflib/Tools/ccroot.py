@@ -534,7 +534,7 @@ def apply_implib(self):
 	else:
 		name = os.path.split(self.target)[1]
 	implib = self.env.implib_PATTERN % name
-	implib = dll.parent.find_or_declare(implib)
+	implib = get_implib_directory(dll).find_or_declare(implib)
 	self.env.append_value('LINKFLAGS', self.env.IMPLIB_ST % implib.bldpath())
 	self.link_task.outputs.append(implib)
 
@@ -566,6 +566,26 @@ def apply_implib(self):
 					self.env.IMPLIBDIR = self.env.LIBDIR
 		self.implib_install_task = self.add_install_files(install_to=inst_to, install_from=implib,
 			chmod=self.link_task.chmod, task=self.link_task)
+
+def get_implib_directory(dll):
+	"""
+	Generate the implib directory node based on the DLL node.
+
+	If the DLL is in Windows-x64/, place the implib in ../../lib/Windows-x64/.
+	If the DLL is in internal/bin/, place the implib in ../lib/.
+	Otherwise, place the implib in the same directory as the DLL.
+
+	:param waflib.Node dll: Node representing the DLL.
+	:rtype waflib.Node:
+	:return: Node representing the directory where the implib should be placed.
+	"""
+	dll_dir = dll.parent
+	if dll_dir.suffix() == 'Windows-x64':
+		return dll_dir.parent.parent.find_or_declare('lib').find_or_declare('Windows-x64')
+	elif dll_dir.suffix() == 'bin' and dll_dir.parent.suffix() == 'internal':
+		return dll_dir.parent.find_or_declare('lib')
+	else:
+		return dll_dir
 
 # ============ the code above must not know anything about vnum processing on unix platforms =========
 
@@ -802,4 +822,3 @@ def set_full_paths_hpux(self):
 			else:
 				lst.append(os.path.normpath(os.path.join(base, x)))
 		self.env[var] = lst
-
