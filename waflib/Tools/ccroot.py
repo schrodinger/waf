@@ -567,9 +567,9 @@ def get_implib_directory(dll):
 	:return: Node representing the directory where the implib should be placed.
 	"""
 	dll_dir = dll.parent
-	if dll_dir.suffix() == 'Windows-x64':
+	if dll_dir.parent.suffix() == 'bin' and dll_dir.suffix() == 'Windows-x64':
 		return dll_dir.parent.parent.find_or_declare('lib').find_or_declare('Windows-x64')
-	elif dll_dir.suffix() == 'bin' and dll_dir.parent.suffix() == 'internal':
+	elif dll_dir.parent.suffix() == 'internal' and dll_dir.suffix() == 'bin':
 		return dll_dir.parent.find_or_declare('lib')
 	else:
 		return dll_dir
