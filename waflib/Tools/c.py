@@ -22,9 +22,6 @@ class c(Task.Task):
 	ext_in  = ['.h'] # set the build order easily by using ext_out=['.h']
 	scan    = c_preproc.scan
 
-	def zi_env_flags(self):
-		return self.env.CFLAGS
-
 	pdb_flag = pdb_flag
 
 class cprogram(link_task):

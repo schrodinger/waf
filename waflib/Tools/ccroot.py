@@ -794,7 +794,13 @@ def set_full_paths_hpux(self):
 		self.env[var] = lst
 
 def pdb_flag(self):
-	if '/Zi' not in self.zi_env_flags():
+	"""
+	Returns a string representing a unique, per-object file path to a .pdb file
+	(by default, /Zi would use a shared .pdb requiring synchronization)
+	"""
+	zi_flag = '/Zi'
+	env_vars = 'CFLAGS', 'CXXFLAGS'
+	if not any([zi_flag in self.env[env_var] for env_var in env_vars]):
 		return ''
 	schrodinger = Node.find_schrodinger_node(self.generator.bld)
 	mapfiles = schrodinger.find_or_declare('mapfiles')
