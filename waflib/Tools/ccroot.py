@@ -792,3 +792,12 @@ def set_full_paths_hpux(self):
 			else:
 				lst.append(os.path.normpath(os.path.join(base, x)))
 		self.env[var] = lst
+
+def pdb_flag(self):
+	if '/Zi' not in self.zi_env_flags():
+		return ''
+	schrodinger = Node.find_schrodinger_node(self.generator.bld)
+	mapfiles = schrodinger.find_or_declare('mapfiles')
+	pdb = mapfiles.find_or_declare(self.outputs[0].path_from(schrodinger))
+	pdb = pdb.change_ext('.pdb')
+	return '/Fd'+pdb.abspath()
