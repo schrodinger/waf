@@ -4,9 +4,9 @@
 
 "Base for c++ programs and libraries"
 
-from waflib import TaskGen, Task
+from waflib import Node, TaskGen, Task
 from waflib.Tools import c_preproc
-from waflib.Tools.ccroot import link_task, stlink_task
+from waflib.Tools.ccroot import link_task, pdb_flag, stlink_task
 
 @TaskGen.extension('.cpp','.cc','.cxx','.C','.c++')
 def cxx_hook(self, node):
@@ -18,10 +18,13 @@ if not '.c' in TaskGen.task_gen.mappings:
 
 class cxx(Task.Task):
 	"Compiles C++ files into object files"
-	run_str = '${CXX} ${ARCH_ST:ARCH} ${CXXFLAGS} ${FRAMEWORKPATH_ST:FRAMEWORKPATH} ${CPPPATH_ST:INCPATHS} ${DEFINES_ST:DEFINES} ${CXX_SRC_F}${SRC} ${CXX_TGT_F}${TGT[0].abspath()} ${CPPFLAGS}'
+	run_str = '${CXX} ${ARCH_ST:ARCH} ${CXXFLAGS} ${tsk.pdb_flag()} ${FRAMEWORKPATH_ST:FRAMEWORKPATH} ${CPPPATH_ST:INCPATHS} ${DEFINES_ST:DEFINES} ${CXX_SRC_F}${SRC} ${CXX_TGT_F}${TGT[0].abspath()} ${CPPFLAGS}'
 	vars    = ['CXXDEPS'] # unused variable to depend on, just in case
 	ext_in  = ['.h'] # set the build order easily by using ext_out=['.h']
 	scan    = c_preproc.scan
+
+	pdb_flag = pdb_flag
+
 
 class cxxprogram(link_task):
 	"Links object files into c++ programs"
@@ -37,4 +40,3 @@ class cxxshlib(cxxprogram):
 class cxxstlib(stlink_task):
 	"Links object files into c++ static libraries"
 	pass # do not remove
-
