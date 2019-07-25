@@ -6,7 +6,7 @@
 
 from waflib import TaskGen, Task
 from waflib.Tools import c_preproc
-from waflib.Tools.ccroot import link_task, stlink_task
+from waflib.Tools.ccroot import link_task, pdb_flag, stlink_task
 
 @TaskGen.extension('.c')
 def c_hook(self, node):
@@ -17,10 +17,12 @@ def c_hook(self, node):
 
 class c(Task.Task):
 	"Compiles C files into object files"
-	run_str = '${CC} ${ARCH_ST:ARCH} ${CFLAGS} ${FRAMEWORKPATH_ST:FRAMEWORKPATH} ${CPPPATH_ST:INCPATHS} ${DEFINES_ST:DEFINES} ${CC_SRC_F}${SRC} ${CC_TGT_F}${TGT[0].abspath()} ${CPPFLAGS}'
+	run_str = '${CC} ${ARCH_ST:ARCH} ${CFLAGS} ${tsk.pdb_flag()} ${FRAMEWORKPATH_ST:FRAMEWORKPATH} ${CPPPATH_ST:INCPATHS} ${DEFINES_ST:DEFINES} ${CC_SRC_F}${SRC} ${CC_TGT_F}${TGT[0].abspath()} ${CPPFLAGS}'
 	vars    = ['CCDEPS'] # unused variable to depend on, just in case
 	ext_in  = ['.h'] # set the build order easily by using ext_out=['.h']
 	scan    = c_preproc.scan
+
+	pdb_flag = pdb_flag
 
 class cprogram(link_task):
 	"Links object files into c programs"
@@ -36,4 +38,3 @@ class cshlib(cprogram):
 class cstlib(stlink_task):
 	"Links object files into a c static libraries"
 	pass # do not remove
-
