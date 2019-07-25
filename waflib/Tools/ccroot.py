@@ -799,7 +799,7 @@ def pdb_flag(self):
 	(by default, /Zi would use a shared .pdb requiring synchronization)
 	"""
 	zi_flag = '/Zi'
-	env_vars = 'CFLAGS', 'CXXFLAGS'
+	env_vars = ('CFLAGS', 'CXXFLAGS')
 	if not any([zi_flag in self.env[env_var] for env_var in env_vars]):
 		return ''
 	schrodinger = Node.find_schrodinger_node(self.generator.bld)
