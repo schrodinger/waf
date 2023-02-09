@@ -565,7 +565,7 @@ def find_qt5_binaries(self):
 	# at the end, try to find qmake in the paths given
 	# keep the one with the highest version
 	cand = None
-	prev_ver = ['0', '0', '0']
+	prev_ver = ['5', '0', '0']
 	for qmk in ('qmake-qt5', 'qmake5', 'qmake'):
 		try:
 			qmake = self.find_program(qmk, path_list=paths)
@@ -579,7 +579,7 @@ def find_qt5_binaries(self):
 			else:
 				if version:
 					new_ver = version.split('.')
-					if new_ver[0] == '5' and new_ver > prev_ver:
+					if new_ver > prev_ver:
 						cand = qmake
 						prev_ver = new_ver
 
