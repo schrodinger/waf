@@ -108,8 +108,8 @@ def options(opt):
 		dest='strip_comments')
 	opt.add_option('--nostrip', action='store_false', help='no shrinking',
 		dest='strip_comments')
-	opt.add_option('--tools', action='store', help='Comma-separated 3rd party tools to add, eg: "compat,ocaml" [Default: "compat15"]',
-		dest='add3rdparty', default='compat15')
+	opt.add_option('--tools', action='store', help='Comma-separated 3rd party tools to add, eg: "compat,ocaml" [Default: all of them]',
+		dest='add3rdparty', default='')
 	opt.add_option('--coretools', action='store', help='Comma-separated core tools to add, eg: "vala,tex" [Default: all of them]',
 		dest='coretools', default='default')
 	opt.add_option('--prelude', action='store', help='Code to execute before calling waf', dest='prelude', default=PRELUDE)
@@ -252,7 +252,7 @@ def create_waf(self, *k, **kw):
 
 		elif os.path.isabs(x):
 			files.append(x)
-		else:
+		elif x:
 			add3rdparty.append(x + '.py')
 
 	coretools = []
@@ -269,7 +269,7 @@ def create_waf(self, *k, **kw):
 			if node.name not in coretools:
 				continue
 		if node.parent.name == 'extras':
-			if node.name not in add3rdparty:
+			if add3rdparty and node.name not in add3rdparty:
 				continue
 		files.append(relpath)
 
