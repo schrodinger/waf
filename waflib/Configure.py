@@ -31,11 +31,6 @@ class ConfigurationContext(Context.Context):
 
 	cmd = 'configure'
 
-	error_handlers = []
-	"""
-	Additional functions to handle configuration errors
-	"""
-
 	def __init__(self, **kw):
 		super(ConfigurationContext, self).__init__(**kw)
 		self.environ = dict(os.environ)
