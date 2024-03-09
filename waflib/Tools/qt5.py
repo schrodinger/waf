@@ -853,14 +853,13 @@ def set_qt5_libs_to_check(self):
 		if Utils.unversioned_sys_platform() == 'darwin':
 			pat = r"%s\.framework"
 
-		# We only want to match Qt5 or Qt in the case of Qt5, in the case
-		# of Qt6 we want to match Qt6 or Qt. This speeds up configuration
-		# and reduces the chattiness of the configuration. Should also prevent
-		# possible misconfiguration.
 		if self.want_qt6:
-			re_qt = re.compile(pat % 'Qt6?(?P<name>\\w+)' + '$')
+			# match Qt6Name or QtName but not Qt5Name
+			mid_pattern = pat % 'Qt6?(?P<name>[^5]\\w+)'
 		else:
-			re_qt = re.compile(pat % 'Qt5?(?P<name>\\w+)' + '$')
+			# match Qt5Name or QtName but not Qt6Name
+			mid_pattern = pat % 'Qt5?(?P<name>[^6]\\w+)'
+		re_qt = re.compile('^%s$' % mid_pattern)
 
 		for x in sorted(dirlst):
 			m = re_qt.match(x)
