@@ -858,9 +858,9 @@ def set_qt5_libs_to_check(self):
 		# and reduces the chattiness of the configuration. Should also prevent
 		# possible misconfiguration.
 		if self.want_qt6:
-			re_qt = re.compile(pat % 'Qt6?(?!\\d)(?P<name>\\w+)' + '$')
+			re_qt = re.compile(pat % 'Qt6?(?P<name>\\w+)' + '$')
 		else:
-			re_qt = re.compile(pat % 'Qt5?(?!\\d)(?P<name>\\w+)' + '$')
+			re_qt = re.compile(pat % 'Qt5?(?P<name>\\w+)' + '$')
 
 		for x in sorted(dirlst):
 			m = re_qt.match(x)
