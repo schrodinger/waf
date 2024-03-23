@@ -2,4 +2,3 @@ Waf 2.1
 -------
 
 - Fix the circular imports ccroot<->c_config.py
-- Change _add_task to add_task in Runner.py

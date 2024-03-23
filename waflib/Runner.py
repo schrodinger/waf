@@ -343,7 +343,7 @@ class Parallel(object):
 				while sem.waiting and not sem.is_locked():
 					# take a frozen task, make it ready to run
 					x = sem.waiting.pop()
-					self._add_task(x)
+					self.add_task(x)
 
 	def get_out(self):
 		"""
@@ -371,7 +371,7 @@ class Parallel(object):
 		# TODO change in waf 2.1
 		self.ready.put(tsk)
 
-	def _add_task(self, tsk):
+	def add_task(self, tsk):
 		if hasattr(tsk, 'semaphore'):
 			sem = tsk.semaphore
 			try:
@@ -490,7 +490,7 @@ class Parallel(object):
 
 			st = self.task_status(tsk)
 			if st == Task.RUN_ME:
-				self._add_task(tsk)
+				self.add_task(tsk)
 			elif st == Task.ASK_LATER:
 				self.postpone(tsk)
 			elif st == Task.SKIP_ME:
