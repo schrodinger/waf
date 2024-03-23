@@ -89,7 +89,7 @@ all_msvc_platforms = [	('x64', 'amd64'), ('x86', 'x86'), ('ia64', 'ia64'),
 						('amd64_x86', 'x86'), ('amd64_arm', 'arm'), ('amd64_arm64', 'arm64') ]
 """List of msvc platforms"""
 
-all_icl_platforms = [ ('intel64', 'amd64'), ('em64t', 'amd64'), ('ia32', 'x86'), ('Itanium', 'ia64')]
+all_icl_platforms = [('intel64', 'amd64'), ('em64t', 'amd64'), ('ia32', 'x86')]
 """List of icl platforms"""
 
 def options(opt):

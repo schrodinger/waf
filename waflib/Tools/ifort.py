@@ -99,7 +99,7 @@ def configure(conf):
 		conf.ifort_modifier_platform()
 
 
-all_ifort_platforms = [ ('intel64', 'amd64'), ('em64t', 'amd64'), ('ia32', 'x86'), ('Itanium', 'ia64')]
+all_ifort_platforms = [('intel64', 'amd64'), ('em64t', 'amd64'), ('ia32', 'x86')]
 """List of icl platforms"""
 
 @conf
