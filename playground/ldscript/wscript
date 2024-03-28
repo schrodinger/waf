@@ -21,9 +21,9 @@ def build(bld):
 		)
 
 from waflib import Utils
-from waflib.TaskGen import after, feature
+from waflib.TaskGen import after_method, feature
 
-@after('apply_link')
+@after_method('propagate_uselib_vars')
 @feature('cprogram', 'cshlib')
 def process_ldscript(self):
 	if not getattr(self, 'ldscript', None) or self.env.CC_NAME != 'gcc':
