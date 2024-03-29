@@ -38,4 +38,3 @@ or in playground/ for modules under waflib/extras.
 
 The files under waflib/Tools/ are kept API-compatible for the duration
 of a middle version (currently 2.0).
-
