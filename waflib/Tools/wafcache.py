@@ -444,7 +444,6 @@ def lru_evict():
 	"""
 	Reduce the cache size
 	"""
-	import fcntl
 	lockfile = os.path.join(CACHE_DIR, 'all.lock')
 	try:
 		st = os.stat(lockfile)
@@ -452,24 +451,63 @@ def lru_evict():
 		if e.errno == errno.ENOENT:
 			with open(lockfile, 'w') as f:
 				f.write('')
-			return
 		else:
+			# any other errors such as permissions
 			raise
 
 	if st.st_mtime < time.time() - EVICT_INTERVAL_MINUTES * 60:
 		# check every EVICT_INTERVAL_MINUTES minutes if the cache is too big
-		# OCLOEXEC is unnecessary because no processes are spawned
+		# OCLOEXEC is unnecessary because no cleaning processes are spawned
 		fd = os.open(lockfile, os.O_RDWR | os.O_CREAT, 0o755)
 		try:
 			try:
-				fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-			except EnvironmentError:
-				if WAFCACHE_VERBOSITY:
-					sys.stderr.write('wafcache: another cleaning process is running\n')
+				import fcntl
+			except ImportError:
+				import msvcrt, ctypes, ctypes.wintypes
+				handle = msvcrt.get_osfhandle(fd)
+
+				kernel32 = ctypes.windll('kernel32', use_last_error=True)
+				DWORD = ctypes.wintypes.DWORD
+				HANDLE = ctypes.wintypes.HANDLE
+				class DUMMYSTRUCTNAME(ctypes.Structure):
+					_fields = [('Offset', ctypes.wintypes.DWORD), ('OffsetHigh', DWORD)]
+				class DUMMYUNIONNAME(ctypes.Union):
+					_fields_ = [('_dummystructname', DUMMYSTRUCTNAME), ('Pointer', ctypes.c_void_p)]
+				class OVERLAPPED(ctypes.Structure):
+					_fields_ = [('Internal', ctypes.c_void_p), ('InternalHigh', ctypes.c_void_p), ('_dummyunionname', DUMMYUNIONNAME), ('hEvent', HANDLE)]
+
+				LockFileEx = kernel32.LockFileEx
+				LockFileEx.argtypes = [HANDLE, DWORD, DWORD, DWORD, DWORD, POINTER(OVERLAPPED)]
+				LockFileEx.restype = BOOL
+
+				UnlockFileEx = kernel32.UnlockFileEx
+				UnlockFileEx.argtypes = [HANDLE, DWORD, DWORD, DWORD, POINTER(OVERLAPPED)]
+				UnlockFileEx.restype = BOOL
+
+				if LockFileEx(handle, 3, 0, 1, 0, ctypes.pointer(OVERLAPPED())):
+					try:
+						lru_trim()
+						os.utime(lockfile, None)
+					finally:
+						win32file.UnlockFileEx(handle, 0, 1, 0, ctypes.pointer(OVERLAPPED()))
+				else:
+					last_error = kernel32.GetLastError()
+					if last_error == 33:
+						if WAFCACHE_VERBOSITY:
+							sys.stderr.write('wafcache: another cleaning process is running\n')
+					else:
+						raise OSError(last_error)
+
 			else:
-				# now dow the actual cleanup
-				lru_trim()
-				os.utime(lockfile, None)
+				try:
+					fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+				except EnvironmentError:
+					if WAFCACHE_VERBOSITY:
+						sys.stderr.write('wafcache: another cleaning process is running\n')
+				else:
+					# now dow the actual cleanup
+					lru_trim()
+					os.utime(lockfile, None)
 		finally:
 			os.close(fd)
 
