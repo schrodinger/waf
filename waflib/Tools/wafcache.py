@@ -59,7 +59,7 @@ To troubleshoot::
 	waf clean build --zone=wafcache
 """
 
-import atexit, base64, errno, fcntl, getpass, os, re, shutil, sys, time, threading, traceback, urllib3, shlex
+import atexit, base64, errno, getpass, os, re, shutil, sys, time, threading, traceback, shlex
 try:
 	import subprocess32 as subprocess
 except ImportError:
@@ -444,6 +444,7 @@ def lru_evict():
 	"""
 	Reduce the cache size
 	"""
+	import fcntl
 	lockfile = os.path.join(CACHE_DIR, 'all.lock')
 	try:
 		st = os.stat(lockfile)
@@ -474,6 +475,7 @@ def lru_evict():
 
 class netcache(object):
 	def __init__(self):
+		import urllib3
 		self.http = urllib3.PoolManager()
 
 	def url_of(self, sig, i):
