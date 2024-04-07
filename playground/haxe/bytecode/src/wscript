@@ -1,6 +1,6 @@
 def configure(ctx):
     ctx.load('haxe')
-    ctx.check_haxe(mini='4.0.0', maxi='4.2.5')
+    ctx.check_haxe(mini='4.0.0', maxi='4.7.5')
     ctx.check_haxe_pkg(
         libs=['hashlink'],
         uselib_store='HLR',

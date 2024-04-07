@@ -25,11 +25,11 @@ def h_file(filename):
 	"""now folders can have a signature too"""
 	st = os.stat(filename)
 	if stat.S_ISDIR(st[stat.ST_MODE]):
-		return Utils.md5(filename).digest()
+		return Utils.md5(filename.encode('latin-1')).digest()
 	m = Utils.md5()
 	m.update(str(st.st_mtime))
 	m.update(str(st.st_size))
-	m.update(filename)
+	m.update(filename.encode('latin-1'))
 	return m.digest()
 Utils.h_file = h_file
 

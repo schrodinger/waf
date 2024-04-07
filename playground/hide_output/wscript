@@ -14,9 +14,9 @@ def build(bld):
 
 
 from waflib import Utils
-from waflib.TaskGen import feature, after
+from waflib.TaskGen import feature, after_method
 @feature('hidden')
-@after('apply_rule')
+@after_method('process_rule')
 def hide_it(self):
 	self.tasks[0].__class__.log_display = Utils.nada
 
