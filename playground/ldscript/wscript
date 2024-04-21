@@ -20,7 +20,7 @@ def build(bld):
 		linkflags = ['-nostdlib'],
 		)
 
-from waflib import Utils
+from waflib import Errors
 from waflib.TaskGen import after_method, feature
 
 @after_method('propagate_uselib_vars')
@@ -31,7 +31,7 @@ def process_ldscript(self):
 
 	node = self.path.find_resource(self.ldscript)
 	if not node:
-		raise Utils.WafError('could not find %r' % self.ldscript)
+		raise Errors.WafError('could not find %r' % self.ldscript)
 	self.link_task.env.append_value('LINKFLAGS', '-Wl,-T,%s' % node.abspath())
 	self.link_task.dep_nodes.append(node)
 
