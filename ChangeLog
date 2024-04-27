@@ -4,6 +4,7 @@ CHANGES IN WAF 2.1.0
 + Added wafcache
 + waf_unit_test: Added task in returned tuples, custom reports should be adapted
 ~ Ensure ConfigurationContext.load and Context.load definitions are consistent and remove unused *k parameters
+~ Remove the dependency on optparse and use argparse instead
 - Remove waflib.Runner.PriorityTasks.appendleft
 - Remove waflib.Task.TaskBase
 - Remove the upper class of waflib.Task.Task (metaclass syntax)
