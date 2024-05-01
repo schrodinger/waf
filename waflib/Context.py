@@ -24,7 +24,7 @@ HEXVERSION=0x2010000
 WAFVERSION="2.1.0"
 """Constant updated on new releases"""
 
-WAFREVISION="4e171c87adf3401e817a7d434f82aa9510ff0d72"
+WAFREVISION="bd5c22d484734f7c1b77e16c91a10c7a44fa6c8a"
 """Git revision when the waf version is updated"""
 
 WAFNAME="waf"

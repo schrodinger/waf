@@ -1,6 +1,6 @@
 CHANGES IN WAF 2.1.0
 --------------------
-* While the Waf file runs on Python 2 and 3, creating it requires version 3
+* While the Waf file runs on Python 2 and 3, creating it requires Python 3
 + Added wafcache
 + waf_unit_test: Added task in returned tuples, custom reports should be adapted
 ~ Ensure ConfigurationContext.load and Context.load definitions are consistent and remove unused *k parameters

@@ -1,4 +1,0 @@
-Waf 2.1
--------
-
-- Fix the circular imports ccroot<->c_config.py
