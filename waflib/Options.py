@@ -134,7 +134,8 @@ class OptionsContext(Context.Context):
 		p('--zones',          dest='zones',   default='',    action='store', help='debugging zones (task_gen, deps, tasks, etc)')
 		p('--profile',        dest='profile', default=0,     action='store_true', help=argparse.SUPPRESS)
 		p('--pdb',            dest='pdb',     default=0,     action='store_true', help=argparse.SUPPRESS)
-		p('-h', '--help',     dest='whelp',   default=0,     action='store_true', help="show this help message and exit")
+		p('-h', '--help',     dest='whelp',   default=0,     action='store_true', help='show this help message and exit')
+		p('--version',        dest='version', default=False, action='store_true', help='show the Waf version and exit')
 
 		gr = self.add_option_group('Configuration options')
 
