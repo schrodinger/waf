@@ -889,8 +889,8 @@ def options(opt):
 	"""
 	opt.add_option('--want-rpath', action='store_true', default=False, dest='want_rpath', help='enable the rpath for qt libraries')
 	for i in 'qtdir qtbin qtlibs'.split():
-		opt.add_option('--'+i, type='string', default='', dest=i)
+		opt.add_option('--'+i, type=str, default='', dest=i)
 
 	opt.add_option('--translate', action='store_true', help='collect translation strings', dest='trans_qt5', default=False)
-	opt.add_option('--qtextralibs', type='string', default='', dest='qtextralibs', help='additional qt libraries on the system to add to default ones, comma separated')
+	opt.add_option('--qtextralibs', type=str, default='', dest='qtextralibs', help='additional qt libraries on the system to add to default ones, comma separated')
 

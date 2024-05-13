@@ -210,9 +210,12 @@ class OptionsContext(Context.Context):
 		return count
 
 	def add_option(self, *k, **kw):
-		if 'type' in kw and kw['type'] == 'int':
+		if 'type' in kw and type(kw['type']) == str:
 			Logs.warn('Invalid "type=str" in add_option (must be a class, not a string)')
-			kw['type'] = int
+			if kw['type'] == 'int':
+				kw['type'] = int
+			elif kw['type'] == 'string':
+				kw['type'] = str
 		return self.add_argument(*k, **kw)
 
 	def add_argument(self, *k, **kw):

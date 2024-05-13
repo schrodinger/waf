@@ -5,7 +5,7 @@
 # this may be useful for link tasks for example
 
 def options(opt):
-	opt.add_option('--loops', action='store', type='int', default=5, help='amount of cpu-intensive loops to perform')
+	opt.add_option('--loops', action='store', type=int, default=5, help='amount of cpu-intensive loops to perform')
 
 def configure(conf):
 	busy = conf.path.find_node('look_busy.py').abspath()

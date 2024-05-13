@@ -25,7 +25,7 @@ import random, bz2, os, threading
 lock = threading.Lock()
 
 def options(opt):
-	opt.add_option('--num', action='store', type='int', default=200, help='amount of compressed files to create')
+	opt.add_option('--num', action='store', type=int, default=200, help='amount of compressed files to create')
 
 # values for storing the min and max
 gzip  = [10000000, 0]
