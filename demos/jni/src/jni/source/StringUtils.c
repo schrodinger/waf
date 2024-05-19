@@ -1,6 +1,6 @@
 #include "StringUtils.h"
 #include <string.h>
-
+#include <ctype.h>
 
 JNIEXPORT jboolean JNICALL Java_StringUtils_isAlpha(JNIEnv *env, jclass clazz,
         jstring jStr)

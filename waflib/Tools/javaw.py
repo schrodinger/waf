@@ -487,6 +487,15 @@ def configure(self):
 	for x in 'javac java jar javadoc'.split():
 		self.find_program(x, var=x.upper(), path_list=java_path, mandatory=(x not in ('javadoc')))
 
+	if not self.env.JAVA_HOME:
+		# needed for jni
+		if self.env.JAVAC and len(Utils.to_list(self.env.JAVAC)) == 1:
+			# heuristic to find the correct JAVA_HOME
+			javac_path = Utils.to_list(self.env.JAVAC)[0]
+			java_dir = os.path.dirname(os.path.dirname(os.path.realpath(javac_path)))
+			if os.path.exists(os.path.join(java_dir, 'lib')):
+				self.env.JAVA_HOME = [java_dir]
+
 	if 'CLASSPATH' in self.environ:
 		v.CLASSPATH = self.environ['CLASSPATH']
 
@@ -572,7 +581,7 @@ def check_jni_headers(conf):
 	f = dir.ant_glob('**/*jvm.(so|dll|dylib)')
 	libDirs = [x.parent.abspath() for x in f] or [javaHome]
 
-	# On windows, we need both the .dll and .lib to link.  On my JDK, they are
+	# On windows, we need both the .dll and .lib to link. On my JDK, they are
 	# in different directories...
 	f = dir.ant_glob('**/*jvm.(lib)')
 	if f:

@@ -1,3 +1,8 @@
+NEW IN WAF 2.1.1
+----------------
+* Fixed some argparse regressions
+* Fixed 'waf --version'
+
 CHANGES IN WAF 2.1.0
 --------------------
 * While the Waf file runs on Python 2 and 3, creating it requires Python 3

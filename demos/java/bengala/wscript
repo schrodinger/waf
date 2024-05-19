@@ -4,7 +4,7 @@ def build(bld):
 
 	bld(features  = 'javac',
 		srcdir      = 'src',
-		compat      = '1.7',
+		compat      = '8',
 		use         = 'cats-src',
 		name        = 'bengala-cat',
 		recurse_use = True,
