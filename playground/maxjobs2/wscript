@@ -8,6 +8,9 @@ def configure(conf):
 def build(bld):
 	p = bld.srcnode.find_node('compute').abspath()
 
+	lockf = bld.srcnode.make_node('busy_lock.txt')
+	lockf.write('')
+
 	bld.jobs = JOBS = 3
 	for i in range(JOBS):
 		bld(rule='waf configure build -o test%d'%i, cwd=p, always=True)
