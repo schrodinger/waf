@@ -19,6 +19,13 @@ def configure(conf):
 	conf.load('compiler_c stale')
 
 def build(bld):
+	import waflib.Build
+	bld.post_mode = waflib.Build.POST_AT_ONCE
+
+	# the file foo.h is removed when bar.h is creatd
+	# or the other way round
+	# but both foo.h and bar.h will not be found in the build directory
+
 	import random
 	if random.randint(0, 1):
 		bld(rule='touch ${TGT}', target='foo.h')

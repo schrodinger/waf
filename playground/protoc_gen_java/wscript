@@ -26,11 +26,11 @@ def build(bld):
 	)
 
 	# cxx doesn't have a problem with this, just knows gen.proto will pop up later
-        bld(
+	bld(
 		features = 'cxx cxxshlib',
 		source = [ bld.path.find_or_declare(genp.target) ],
-                name     = 'somelib',
-                target   = 'somelib'
+		name     = 'somelib',
+		target   = 'somelib'
 	)
 
 	# but for java:
