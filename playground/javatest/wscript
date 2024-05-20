@@ -6,6 +6,8 @@
 # Simple script to demonstrate integration of Java Unit testing inside
 # standard waf_unit_test using either TestNG or JUnit
 #
+# try:
+#   waf configure --jtpath=/usr/share/java/testng.jar:/usr/share/java/jcommander.jar clean build
 
 def test_results(bld):
 	"""
