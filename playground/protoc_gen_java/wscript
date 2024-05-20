@@ -13,8 +13,12 @@ def options(opt):
 
 def configure(conf):
 	conf.load('compiler_cxx java protoc')
-	# Here you have to point to your protobuf-java JAR
-	conf.env.CLASSPATH_PROTOBUF = ['/usr/share/maven-repo/com/google/protobuf/protobuf-java/3.0.0/protobuf-java-3.0.0.jar']
+
+	# set this
+	protobuf = '/usr/share/maven-repo/com/google/protobuf/protobuf-java-util/3.21.12/protobuf-java-util-3.21.12.jar'
+	if not os.path.exists(protobuf):
+		conf.fatal("set the path to the protobuf library in this example, for example %s" % protobuf)
+	conf.env.CLASSPATH_PROTOBUF = protobuf
 
 def build(bld):
 
