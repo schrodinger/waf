@@ -12,7 +12,7 @@ from waflib import Logs, Options
 
 def options(opt):
 	opt.load('compiler_c')
-	opt.load('build_file_tracker')
+	opt.load('build_file_timestamp')
 
 def configure(conf):
 	conf.load('compiler_c')
