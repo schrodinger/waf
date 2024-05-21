@@ -9,15 +9,13 @@ Waf is a Python-based framework for configuring, compiling and installing applic
 * *Extensibility*: though many programming languages and compilers are already supported by default, many others are available as extensions
 * *IDE support*: Eclipse, Visual Studio and Xcode project generators (`waflib/extras/`)
 * *Documentation*: the application is based on a robust model documented in [The Waf Book](https://waf.io/book/) and in the [API docs](https://waf.io/apidocs/)
-* *Python compatibility*: cPython 2.5 to 3.x, Jython 2.5, IronPython, and PyPy
+* *Python compatibility*: cPython 2.7 to 3.x, Jython 2.7 and PyPy
 
 Learn more about Waf by reading [The Waf Book](https://waf.io/book/). For researchers and build system writers, Waf also provides a framework and examples for creating [custom build systems](https://gitlab.com/ita1024/waf/tree/master/build_system_kit) and [package distribution systems](https://gitlab.com/ita1024/waf/blob/master/playground/distnet/README.rst).
 
 Download the project from our page on [waf.io](https://waf.io/), consult the [manual](https://waf.io/book/), the [API documentation](https://waf.io/apidocs/) and the [showcases](https://gitlab.com/ita1024/waf/tree/master/demos) and [experiments](https://gitlab.com/ita1024/waf/tree/master/playground).
 
 ## HOW TO CREATE THE WAF SCRIPT
-
-Python >= 2.7 is required to generate the waf script:
 
 ```sh
 python ./waf-light configure build
