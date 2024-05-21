@@ -2,6 +2,7 @@ NEW IN WAF 2.1.1
 ----------------
 * Fixed some argparse regressions
 * Fixed 'waf --version'
+* Updated most project examples
 
 CHANGES IN WAF 2.1.0
 --------------------
