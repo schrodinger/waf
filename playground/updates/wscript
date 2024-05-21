@@ -9,7 +9,6 @@ def configure(conf):
 
 def build(bld):
 	bld.env.A = "test (change me) "
-	bld(rule="echo '${A}' > ${TGT}", target='foo.txt', name='foo')
-	bld(rule='echo `cat ${SRC}     ${SRC}`  > ${SRC}', source='foo.txt', name='one')
-	bld(rule='echo `cat ${SRC} ${SRC}`  > ${SRC}', source='foo.txt', after=['one'], name='two')
-
+	bld(rule="echo '${A}' > ${TGT}", target='foo.txt', name='foo', cls_keyword=lambda _: "step 1")
+	bld(rule='echo `cat ${SRC} ${SRC}` > ${SRC}', source='foo.txt', name='one', cls_keyword=lambda _:"step_2")
+	bld(rule='echo `cat ${SRC} ${SRC}` > ${SRC}', source='foo.txt', after=['one'], name='two', cls_keyword=lambda _:"step_3")

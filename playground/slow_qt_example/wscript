@@ -1,0 +1,35 @@
+#! /usr/bin/env python
+# encoding: utf-8
+# Thomas Nagy, 2005, 2011 (ita)
+
+"""
+Process Q_OBJECT classes in source (foo.cpp) and header (foo.h) files.
+The generated files can be included or they will be built as additional files.
+
+The file slow_qt.py assumes that C++ files will include the generated code,
+and that header files will not.
+"""
+
+VERSION='0.0.3'
+APPNAME='slow_qt'
+
+top = '.'
+out = 'build'
+
+def options(opt):
+	opt.load('compiler_cxx qt5')
+
+def configure(conf):
+	conf.load('compiler_cxx qt5')
+	conf.load('slow_qt')
+
+def build(bld):
+	bld(
+		features = 'qt5 cxx cxxprogram',
+		uselib   = 'QT5CORE QT5GUI QT5OPENGL QT5SVG',
+		source   = 'main.cpp foo.cpp',
+		deps     = 'foo.h',
+		includes = '.',
+		target   = 'window',
+		name     = 'mywindow',
+	)

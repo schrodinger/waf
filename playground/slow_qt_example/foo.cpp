@@ -20,5 +20,4 @@ FooP::FooP() {
 
 }
 
-#include "foo_cpp_moc.cpp"
-
+#include "foo_cpp_mywindow_moc.cpp"
