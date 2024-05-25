@@ -1,14 +1,87 @@
 #! /usr/bin/env python
 
 """
-An example to show how multiple tasks can modify the same file
+Multiple tasks can modify the same file(s)
 """
 
 def configure(conf):
 	pass
 
 def build(bld):
-	bld.env.A = "test (change me) "
-	bld(rule="echo '${A}' > ${TGT}", target='foo.txt', name='foo', cls_keyword=lambda _: "step 1")
-	bld(rule='echo `cat ${SRC} ${SRC}` > ${SRC}', source='foo.txt', name='one', cls_keyword=lambda _:"step_2")
-	bld(rule='echo `cat ${SRC} ${SRC}` > ${SRC}', source='foo.txt', after=['one'], name='two', cls_keyword=lambda _:"step_3")
+	bld.env.A = 'test 1'
+	bld.env.B = 'test 2'
+	bld.env.C = 'test 3'
+
+	# recommended approach: just chain the commands/compilers/scripts
+	# (the "rule" parameter is a tuple of strings)
+	bld(
+		rule=("echo '${A}' > ${TGT}", "echo '${B}' >> ${TGT}", "echo '${B}' >> ${TGT}"),
+		target='bar.txt',
+		name='bar',
+		cls_keyword=lambda _: "single_chain",
+	)
+
+	# When tasks and targets are independent (update the same file "foo.txt"):
+	#
+	# 1. the initial task must depends on anything that can cause a rebuild, for example "cls_vars=['A', 'B', 'C']"
+	# 2. the order must be described strictly, for example: "after='update_foo1'"
+	# 3. "features='update_source'" is required to avoid rebuilds when the same input file is set: "source='foo.txt'"
+	bld(rule="echo '${A}' > ${TGT}", target='foo.txt', name='create_foo', cls_keyword=lambda _: "foo1", vars=['A', 'B', 'C'])
+	bld(rule="echo '${B}' >> ${SRC}", source='foo.txt', name='update_foo1', cls_keyword=lambda _:"foo2", after=['create_foo'], features='update_source')
+	bld(rule="echo '${C}' >> ${SRC}", source='foo.txt', name='update_foo2', cls_keyword=lambda _:"foo3", after=['update_foo1'], features='update_source')
+
+	# can be tested using
+	# rule="if [ $$(( $$RANDOM %% 2)) -eq 0 ]; then exit 1; fi; echo '${C}' >> ${SRC}"
+
+# --------------------------------------------------------------------------------------------
+
+from waflib.TaskGen import feature, after_method
+from waflib import Task
+
+def recompute_post_run(self):
+	# In general, inputs are assumed to be unchanged between builds
+	# which is also a safeguard when developers modify source files while building
+	#
+	# For the case above, the caches should be cleared for specific tasks
+
+	if getattr(self, 'busy_recompute', None):
+		# simple lock required due to traversing the entire task tree below
+		return
+	self.busy_recompute = True
+
+	# traverse the task tree: other tasks that use the same inputs need their caches cleared too
+	# this traversal (and the lock) are unnessary if a file is updated only once
+	for idx, group in enumerate(self.generator.bld.groups):
+		if idx > self.generator.bld.current_group:
+			# ignore downstream tasks
+			break
+
+		for tg in group:
+			for tsk in tg.tasks:
+				if not tsk.hasrun:
+					# ignore downstream tasks
+					continue
+
+				for in_node in self.inputs:
+					if in_node in tsk.inputs:
+						# assume that "recompute_post_run" is set on those tasks too
+						tsk.post_run()
+						break
+	delattr(self, 'busy_recompute')
+
+	# delete caches before recomputing
+	for node in self.inputs:
+		del node.ctx.cache_sig[node]
+	del self.cache_sig
+
+	# this assumes that the method post_run can be called more than once with similar effects
+	return Task.Task.post_run(self)
+
+@feature('update_source')
+@after_method('process_source', 'process_rule')
+def update_source(self):
+	# assume that all task objects are created at this point
+	# more "after_method" annotations might be necessary, depending
+	# on the project
+	for task in self.tasks:
+		task.__class__.post_run = recompute_post_run
