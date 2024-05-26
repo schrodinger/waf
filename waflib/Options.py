@@ -41,10 +41,9 @@ class ArgParser(argparse.ArgumentParser):
 	Command-line options parser.
 	"""
 	def __init__(self, ctx):
-		argparse.ArgumentParser.__init__(self, add_help=False)
+		argparse.ArgumentParser.__init__(self, add_help=False, conflict_handler='resolve')
 		self.ctx = ctx
 		self.usage = self.get_usage()
-		self.conflict_handler = 'resolve'
 
 	def _get_formatter(self):
 		"""Initialize the argument parser to the adequate terminal width"""
