@@ -1038,11 +1038,10 @@ def alloc_process_pool(n, force=False):
 def atexit_pool():
 	for k in process_pool:
 		try:
-			os.kill(k.pid, 9)
+			k.kill()
 		except OSError:
 			pass
-		else:
-			k.wait()
+
 # see #1889
 if (sys.hexversion<0x207000f and not is_win32) or sys.hexversion>=0x306000f:
 	atexit.register(atexit_pool)
