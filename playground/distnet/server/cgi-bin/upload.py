@@ -40,7 +40,10 @@ else:
 		with open(tf, 'wb') as f:
 			f.write(pkgdata)
 		with tarfile.open(tf) as f:
-			f.extractall(tmp)
+			if hasattr(tarfile, 'data_filter'):
+				f.extractall(tmp, filter='data')
+			else:
+				f.extractall(tmp)
 		os.remove(tf)
 		os.rename(tmp, dest)
 	finally:

@@ -561,7 +561,10 @@ class DistCheck(Dist):
 
 		with tarfile.open(self.get_arch_name()) as t:
 			for x in t:
-				t.extract(x)
+				if hasattr(tarfile, 'data_filter'):
+					t.extract(x, filter='data')
+				else:
+					t.extract(x)
 
 		instdir = tempfile.mkdtemp('.inst', self.get_base_name())
 		cmd = self.make_distcheck_cmd(instdir)

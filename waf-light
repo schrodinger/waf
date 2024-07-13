@@ -100,7 +100,11 @@ def unpack_wafdir(dir, src):
 			err("Waf cannot be unpacked, check that bzip2 support is present")
 
 	try:
-		for x in t: t.extract(x)
+		for x in t:
+			if hasattr(tarfile, 'data_filter'):
+				t.extract(x, filter='data')
+			else:
+				t.extract(x)
 	finally:
 		t.close()
 
