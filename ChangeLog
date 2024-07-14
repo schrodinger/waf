@@ -1,3 +1,9 @@
+NEW IN WAF 2.1.2
+----------------
+* Work around some Python regressions
+* Add latex dependeny on environment variables
+* Add support for flang compiler
+
 NEW IN WAF 2.1.1
 ----------------
 * Fixed some argparse regressions
