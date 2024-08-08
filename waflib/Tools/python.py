@@ -240,7 +240,17 @@ def get_sysconfig_path(self, name):
 	except KeyError:
 		pass
 
-	cmd = self.env.PYTHON + ["-c", "import sysconfig; print(sysconfig.get_path('{}'))".format(name)]
+	if self.env.PREFIX:
+		# If project wide PREFIX is set, construct the install directory based on this
+		# Note: we could use sysconfig.get_preferred_scheme('user') but that is Python >= 3.10 only
+		pref_scheme = 'posix_user'  # Default to *nix name
+		if Utils.unversioned_sys_platform() == 'darwin':
+			pref_scheme = 'osx_framework_user'
+		elif Utils.unversioned_sys_platform() == 'win32':
+			pref_scheme = 'nt_user'
+		cmd = self.env.PYTHON + ["-c", "import sysconfig; print(sysconfig.get_path('{}', '{}', {{'userbase': '{}'}}))".format(name, pref_scheme, self.env.PREFIX)]
+	else:
+		cmd = self.env.PYTHON + ["-c", "import sysconfig; print(sysconfig.get_path('{}'))".format(name)]
 	out = self.cmd_and_log(cmd, env=env).strip()
 
 	if out == "None":
