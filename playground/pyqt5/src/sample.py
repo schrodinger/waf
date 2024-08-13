@@ -1,6 +1,10 @@
 import sys
+# If pyside6 bindings are used uncomment the following line:
+from PySide6 import QtCore, QtGui, QtWidgets
+# If pyqt6 bindings are used uncomment the following line:
+#from PyQt6 import QtCore, QtGui, QtWidgets
 # If pyqt5 bindings are used uncomment the following line:
-from PyQt5 import QtCore, QtGui, QtWidgets
+#from PyQt5 import QtCore, QtGui, QtWidgets
 # If pyside2 bindings are used uncomment the following line:
 #from PySide2 import QtCore, QtGui, QtWidgets
 
@@ -25,4 +29,4 @@ if __name__ == '__main__':
 	prog = MyFirstGuiProgram(dialog)
 
 	dialog.show()
-	sys.exit(app.exec_())
+	sys.exit(app.exec())
