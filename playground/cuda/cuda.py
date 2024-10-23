@@ -58,6 +58,6 @@ def find_cuda_libs(self):
 			pass
 
 	# this should not raise any error
-	self.check_cxx(header='cuda.h', lib='cuda', libpath=_libpath, includes=_includes)
-	self.check_cxx(header='cuda.h', lib='cudart', libpath=_libpath, includes=_includes)
+	self.check_cxx(header='cuda.h', lib='cuda', libpath=_libpath, includes=_includes, msg='Checking for header cuda.h and library cuda')
+	self.check_cxx(header='cuda.h', lib='cudart', libpath=_libpath, includes=_includes, msg='Checking for header cuda.h and library cudart')
 
