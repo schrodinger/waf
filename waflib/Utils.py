@@ -920,12 +920,17 @@ def run_prefork_process(cmd, kwargs, cargs):
 	if not proc:
 		return run_regular_process(cmd, kwargs, cargs)
 
-	proc.stdin.write(obj)
-	proc.stdin.write('\n'.encode())
+	try:
+		proc.stdin.write(obj)
+		proc.stdin.write('\n'.encode())
+	except OSError:
+		proc.poll()
+		raise OSError('Preforked sub-process:%r is not receiving, status: %r' % (proc.pid, proc.returncode))
 	proc.stdin.flush()
 	obj = proc.stdout.readline()
 	if not obj:
-		raise OSError('Preforked sub-process %r died' % proc.pid)
+		proc.poll()
+		raise OSError('Preforked sub-process:%r is not responding, status: %r' % (proc.pid, proc.returncode))
 
 	process_pool.append(proc)
 	lst = cPickle.loads(base64.b64decode(obj))
@@ -1046,7 +1051,14 @@ def atexit_pool():
 if (sys.hexversion<0x207000f and not is_win32) or sys.hexversion>=0x306000f:
 	atexit.register(atexit_pool)
 
-if os.environ.get('WAF_NO_PREFORK') or sys.platform == 'cli' or not sys.executable:
+try:
+	# proc.stdin.readline errors
+	import sysconfig
+	bad_stdin = 'mingw' in sysconfig.get_platform()
+except ImportError:
+	bad_stdin = True
+
+if bad_stdin or os.environ.get('WAF_NO_PREFORK') or sys.platform == 'cli' or not sys.executable:
 	run_process = run_regular_process
 	get_process = alloc_process_pool = nada
 
