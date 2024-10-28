@@ -34,9 +34,11 @@ def build(bld):
 	bld(features='py', source=bld.path.ant_glob('*.py'), install_from='.')
 
 	# example for generated python files
-	target = bld.path.find_or_declare('abc.py')
-	bld(rule='touch ${TGT}', source='wscript', target=target)
-	bld(features='py', source=[target], install_from=target.parent)
+	from waflib import Utils
+	if not Utils.is_win32:
+		target = bld.path.find_or_declare('abc.py')
+		bld(rule='touch ${TGT}', source='wscript', target=target)
+		bld(features='py', source=[target], install_from=target.parent)
 
 	# then a c extension module
 	bld(

@@ -476,8 +476,8 @@ def check_python_headers(conf, features='pyembed pyext'):
 
 	if env.CC_NAME == "msvc":
 		# From https://github.com/python/cpython/blob/main/Lib/distutils/msvccompiler.py
-		env.append_value('CFLAGS_PYEXT', [ '/nologo', '/Ox', '/MD', '/W3', '/GX', '/DNDEBUG'])
-		env.append_value('CXXFLAGS_PYEXT', [ '/nologo', '/Ox', '/MD', '/W3', '/GX', '/DNDEBUG'])
+		env.append_value('CFLAGS_PYEXT', [ '/nologo', '/Ox', '/MD', '/W3', '/EHsc', '/DNDEBUG'])
+		env.append_value('CXXFLAGS_PYEXT', [ '/nologo', '/Ox', '/MD', '/W3', '/EHsc', '/DNDEBUG'])
 		env.append_value('LINKFLAGS_PYEXT', ['/DLL', '/nologo', '/INCREMENTAL:NO'])
 
 	# See if it compiles

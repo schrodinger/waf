@@ -34,7 +34,7 @@ static struct PyModuleDef spammodule = {
 PyMODINIT_FUNC
 PyInit_spam(void)
 {
-    (void) PyModule_Create(&spammodule);
+    return PyModule_Create(&spammodule);
 }
 
 #else

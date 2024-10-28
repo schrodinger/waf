@@ -32,7 +32,7 @@ static struct PyModuleDef embmodule = {
 PyMODINIT_FUNC
 PyInit_emb(void)
 {
-    (void) PyModule_Create(&embmodule);
+    return PyModule_Create(&embmodule);
 }
 
 #endif
