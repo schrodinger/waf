@@ -203,7 +203,7 @@ def get_sysconfig_variable(self, variable):
 	except KeyError:
 		pass
 
-	cmd = self.env.PYTHON + ["-c", "import sysconfig; print(sysconfig.get_config_var('{}'))".format(variable)]
+	cmd = self.env.PYTHON + ["-c", "import sysconfig; print(sysconfig.get_config_var(%r))" % variable]
 	out = self.cmd_and_log(cmd, env=env).strip()
 
 	if out == "None":
@@ -248,9 +248,9 @@ def get_sysconfig_path(self, name):
 			pref_scheme = 'osx_framework_user'
 		elif Utils.unversioned_sys_platform() == 'win32':
 			pref_scheme = 'nt_user'
-		cmd = self.env.PYTHON + ["-c", "import sysconfig; print(sysconfig.get_path('{}', '{}', {{'userbase': '{}'}}))".format(name, pref_scheme, self.env.PREFIX)]
+		cmd = self.env.PYTHON + ["-c", "import sysconfig; print(sysconfig.get_path(%r, %r, {'userbase': %r}))" % (name, pref_scheme, self.env.PREFIX)]
 	else:
-		cmd = self.env.PYTHON + ["-c", "import sysconfig; print(sysconfig.get_path('{}'))".format(name)]
+		cmd = self.env.PYTHON + ["-c", "import sysconfig; print(sysconfig.get_path(%r))" % name]
 	out = self.cmd_and_log(cmd, env=env).strip()
 
 	if out == "None":
