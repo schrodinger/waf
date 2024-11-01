@@ -50,6 +50,8 @@ def waf_entry_point(current_directory, version, wafdir):
 			sys.argv.pop(1)
 
 	ctx = Context.create_context('options')
+	# allow --ver option in user scripts #2453
+	ctx.parser.allow_abbrev = False
 	(options, commands) = ctx.parse_cmd_args(allow_unknown=True)
 	if options.version:
 		print('%s %s (%s)'%(Context.WAFNAME, Context.WAFVERSION, Context.WAFREVISION))
