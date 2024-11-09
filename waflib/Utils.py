@@ -903,7 +903,7 @@ def get_process():
 	except IndexError:
 		filepath = os.path.dirname(os.path.abspath(__file__)) + os.sep + 'processor.py'
 		cmd = [sys.executable, '-c', readf(filepath)]
-		return subprocess.Popen(cmd, stdout=subprocess.PIPE, stdin=subprocess.PIPE, bufsize=0, close_fds=not is_win32)
+		return subprocess.Popen(cmd, stdout=subprocess.PIPE, stdin=subprocess.PIPE)
 
 def run_prefork_process(cmd, kwargs, cargs):
 	"""
@@ -911,6 +911,11 @@ def run_prefork_process(cmd, kwargs, cargs):
 	"""
 	if not kwargs.get('env'):
 		kwargs['env'] = dict(os.environ)
+
+	if hasattr(subprocess, 'DEVNULL') and 'stdin' not in kwargs:
+		# prevent accidental communication errors
+		kwargs['stdin'] = subprocess.DEVNULL
+
 	try:
 		obj = base64.b64encode(cPickle.dumps([cmd, kwargs, cargs]))
 	except (TypeError, AttributeError):
@@ -1011,7 +1016,7 @@ def run_process(cmd, kwargs, cargs={}):
 	or falling back to subprocess.Popen. See :py:func:`waflib.Utils.run_prefork_process`
 	and :py:func:`waflib.Utils.run_regular_process`
 	"""
-	if kwargs.get('stdout') and kwargs.get('stderr'):
+	if kwargs.get('stdout') and kwargs.get('stderr') and 'stdin' not in kwargs:
 		return run_prefork_process(cmd, kwargs, cargs)
 	else:
 		return run_regular_process(cmd, kwargs, cargs)
@@ -1051,14 +1056,6 @@ def atexit_pool():
 if (sys.hexversion<0x207000f and not is_win32) or sys.hexversion>=0x306000f:
 	atexit.register(atexit_pool)
 
-try:
-	# proc.stdin.readline errors
-	import sysconfig
-	bad_stdin = 'mingw' in sysconfig.get_platform()
-except ImportError:
-	bad_stdin = True
-
-if bad_stdin or os.environ.get('WAF_NO_PREFORK') or sys.platform == 'cli' or not sys.executable:
+if os.environ.get('WAF_NO_PREFORK') or sys.platform == 'cli' or not sys.executable or not hasattr(subprocess, 'DEVNULL'):
 	run_process = run_regular_process
 	get_process = alloc_process_pool = nada
-
