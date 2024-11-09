@@ -56,10 +56,10 @@ def waf_entry_point(current_directory, version, wafdir):
 	if options.version:
 		print('%s %s (%s)'%(Context.WAFNAME, Context.WAFVERSION, Context.WAFREVISION))
 		sys.exit(0)
-	if options.top:
+	if getattr(options, 'top', None):
 		start_dir = Context.run_dir = Context.top_dir = options.top
 		no_climb = True
-	if options.out:
+	if getattr(options, 'out', None):
 		Context.out_dir = options.out
 
 	# if 'configure' is in the commands, do not search any further

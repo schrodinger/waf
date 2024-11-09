@@ -95,7 +95,7 @@ class ConfigurationContext(Context.Context):
 
 		top = self.top_dir
 		if not top:
-			top = Options.options.top
+			top = getattr(Options.options, 'top', None)
 		if not top:
 			top = getattr(Context.g_module, Context.TOP, None)
 		if not top:
@@ -107,7 +107,7 @@ class ConfigurationContext(Context.Context):
 
 		out = self.out_dir
 		if not out:
-			out = Options.options.out
+			out = getattr(Options.options, 'out', None)
 		if not out:
 			out = getattr(Context.g_module, Context.OUT, None)
 		if not out:
