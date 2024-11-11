@@ -35,7 +35,6 @@ When using this tool, the wscript will look like:
         bld(features='cpplint', source=bld.path.ant_glob('**/*.hpp'))
 '''
 
-from __future__ import absolute_import
 import sys, re
 import logging
 from waflib import Errors, Task, TaskGen, Logs, Options, Node, Utils

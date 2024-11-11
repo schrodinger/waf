@@ -9,8 +9,6 @@ The portability fixes try to provide a consistent behavior of the Waf API
 through Python versions 2.5 to 3.X and across different platforms (win32, linux, etc)
 """
 
-from __future__ import with_statement
-
 import atexit, os, sys, errno, inspect, re, datetime, platform, base64, signal, functools, time, shlex
 
 try:

@@ -102,8 +102,6 @@ To use Qt6 set the want_qt6 attribute, ie:
     conf.want_qt6 = True;
 """
 
-from __future__ import with_statement
-
 try:
 	from xml.sax import make_parser
 	from xml.sax.handler import ContentHandler

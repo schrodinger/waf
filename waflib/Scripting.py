@@ -4,8 +4,6 @@
 
 "Module called for configuring, compiling and installing targets"
 
-from __future__ import with_statement
-
 import os, shlex, shutil, traceback, errno, sys, stat
 from waflib import Utils, Configure, Logs, Options, ConfigSet, Context, Errors, Build, Node
 

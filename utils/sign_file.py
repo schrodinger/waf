@@ -4,8 +4,6 @@
 A script that creates signed Python files.
 """
 
-from __future__ import print_function
-
 import os
 import argparse
 import subprocess
@@ -94,7 +92,7 @@ def parse_args():
                         help='Files you wish to sign')
 
     parser.add_argument('--overwrite', action='store_true',
-                        dest='overwrite', default=False, 
+                        dest='overwrite', default=False,
                         help='Overwrite the original file'
                              ' (sign the original file)')
 
