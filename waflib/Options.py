@@ -174,7 +174,7 @@ class OptionsContext(Context.Context):
 
 		gr = self.add_option_group('Installation and uninstallation options')
 		gr.add_option('--destdir', help='installation root [default: %r]' % default_destdir, default=default_destdir, dest='destdir')
-		gr.add_option('-f', '--force', dest='force', default=False, action='store_true', help='force file installation')
+		gr.add_option('-f', '--force', dest='force', default=False, action='store_true', help='disable file installation caching')
 		gr.add_option('--distcheck-args', metavar='ARGS', help='arguments to pass to distcheck', default=None, action='store')
 
 	def jobs(self):

@@ -194,17 +194,17 @@ class ConfigurationContext(Context.Context):
 		:param env: a ConfigSet, usually ``conf.env``
 		"""
 		if not env.PREFIX:
-			if Options.options.prefix or Utils.is_win32:
+			if getattr(Options.options, 'prefix', None):
 				env.PREFIX = Options.options.prefix
 			else:
 				env.PREFIX = '/'
 		if not env.BINDIR:
-			if Options.options.bindir:
+			if getattr(Options.options, 'bindir', None):
 				env.BINDIR = Options.options.bindir
 			else:
 				env.BINDIR = Utils.subst_vars('${PREFIX}/bin', env)
 		if not env.LIBDIR:
-			if Options.options.libdir:
+			if getattr(Options.options, 'libdir', None):
 				env.LIBDIR = Options.options.libdir
 			else:
 				env.LIBDIR = Utils.subst_vars('${PREFIX}/lib%s' % Utils.lib64(), env)
