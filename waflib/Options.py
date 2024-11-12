@@ -43,7 +43,13 @@ class ArgParser(argparse.ArgumentParser):
 	def __init__(self, ctx):
 		argparse.ArgumentParser.__init__(self, add_help=False, conflict_handler='resolve')
 		self.ctx = ctx
+
+	def format_help(self):
 		self.usage = self.get_usage()
+		return super(ArgParser, self).format_help()
+
+	def format_usage(self):
+		return self.format_help()
 
 	def _get_formatter(self):
 		"""Initialize the argument parser to the adequate terminal width"""
