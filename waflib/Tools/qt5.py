@@ -539,8 +539,34 @@ def configure(self):
 		stdflag = '/std:c++17' if self.want_qt6 else '/std:c++11'
 		flag_list = [[], ['/Zc:__cplusplus', '/permissive-', stdflag]]
 	else:
+		# Qt6 has a new build option called 'FEATURE_no_direct_extern_access',
+		# which some distros might use. There's no need to do this on Windows
+		# as Windows doesn't have this issue by nature of dllexport and dllimport.
+
+		relocflag = None
+		if self.want_qt6 and self.env.DEST_OS != 'win32':
+			path = self.qt_pkg_config_path()
+
+			mkspecsdir = self.check_cfg(
+				package = 'Qt6Platform',
+				args = ['--variable', 'mkspecsdir'],
+				pkg_config_path = path
+			).strip()
+
+			with open(os.path.join(mkspecsdir, 'qconfig.pri')) as file:
+				for line in file:
+					if line.startswith('QT_CONFIG') and 'no_direct_extern_access' in line:
+						if self.env.CXX_NAME == 'gcc':
+							relocflag = '-mno-direct-extern-access'
+						elif self.env.CXX_NAME == 'clang':
+							relocflag = '-fno-direct-access-external-data'
+
 		stdflag = '-std=c++17' if self.want_qt6 else '-std=c++11'
-		flag_list = [[], '-fPIE', '-fPIC', stdflag, [stdflag, '-fPIE'], [stdflag, '-fPIC']]
+		flag_list = [[], ['-fPIE'], ['-fPIC'], [stdflag], [stdflag, '-fPIE'], [stdflag, '-fPIC']]
+		if relocflag != None:
+			flag_list = [x + [relocflag] for x in flag_list]
+			Logs.warn('Qt has been built with `no_direct_extern_access` enabled, this feature has only been tested with ld.bfd as linker.\nUse ld.gold/ld.mold/ld.lld at your own risk. If you do not know what linker you are using, you are most likely using ld.bfd.')
+
 	for flag in flag_list:
 		msg = 'See if Qt files compile '
 		if flag:
@@ -752,6 +778,23 @@ def find_single_qt5_lib(self, name, uselib, qtlibs, qtincludes, force_static):
 	return False
 
 @conf
+def qt_pkg_config_path(self):
+	env = self.env
+	qt_ver = '6' if self.want_qt6 else '5'
+
+	path = '%s:%s:%s/pkgconfig:/usr/lib/qt%s/lib/pkgconfig:/opt/qt%s/lib/pkgconfig:/usr/lib/qt%s/lib:/opt/qt%s/lib' % (
+		self.environ.get('PKG_CONFIG_PATH', ''),
+		env.QTLIBS,
+		env.QTLIBS,
+		qt_ver,
+		qt_ver,
+		qt_ver,
+		qt_ver
+	)
+
+	return path
+
+@conf
 def find_qt5_libraries(self):
 	env = self.env
 	qt_ver = '6' if self.want_qt6 else '5'
@@ -785,8 +828,7 @@ def find_qt5_libraries(self):
 					ret = self.find_single_qt5_lib(i, uselib, env.QTLIBS, qtincludes, True)
 				self.msg('Checking for %s' % i, ret, 'GREEN' if ret else 'YELLOW')
 	else:
-		path = '%s:%s:%s/pkgconfig:/usr/lib/qt%s/lib/pkgconfig:/opt/qt%s/lib/pkgconfig:/usr/lib/qt%s/lib:/opt/qt%s/lib' % (
-			self.environ.get('PKG_CONFIG_PATH', ''), env.QTLIBS, env.QTLIBS, qt_ver, qt_ver, qt_ver, qt_ver)
+		path = self.qt_pkg_config_path()
 		for i in self.qt_vars:
 			self.check_cfg(package=i, args='--cflags --libs', mandatory=False, force_static=force_static, pkg_config_path=path)
 
