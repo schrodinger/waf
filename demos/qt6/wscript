@@ -1,0 +1,91 @@
+#! /usr/bin/env python
+# encoding: utf-8
+# Thomas Nagy, 2016 (ita)
+# Federico Pellegrin, 2019 (fedepell)
+# Rafaël Kooi, 2024 (RA-Kooi)
+
+VERSION='0.0.1'
+APPNAME='qt6_test'
+
+top = '.'
+out = 'build'
+
+def options(opt):
+	opt.load('compiler_cxx qt5 waf_unit_test')
+
+def configure(conf):
+	conf.want_qt6 = True
+	#conf.qt6_vars = ['Qt6Core', 'Qt6Gui', 'Qt6Widgets', 'Qt6Test', 'Qt6Svg']
+	conf.load('compiler_cxx qt5 waf_unit_test')
+	#conf.env.append_value('CXXFLAGS', ['-g']) # test
+
+	if not conf.env.QT_LRELEASE:
+		# While Qt6 detects most Qt tools, most of them are optional
+		conf.fatal('lrelease was not found')
+
+	# These tests would run on Ubuntu but not on other platforms
+	conf.check(
+		define_name  = 'XYZ_QT6_TESTS',
+		mandatory    = False,
+		execute      = True,
+		features     = 'qt6 cxx cxxprogram',
+		includes     = '.',
+		defines      = 'QT_WIDGETS_LIB',
+		use          = 'QT6CORE QT6GUI QT6WIDGETS QT6TEST',
+		msg          = 'Checking whether Qt6 tests can run',
+		fragment     = '''
+#include <QtTest/QtTest>
+class TestQt6Test: public QObject {
+	Q_OBJECT
+private:
+	void testGui() {
+		QWidget *widget = NULL;
+		QTest::mouseClick(widget, Qt::LeftButton, Qt::NoModifier, QPoint(5,5), 0);
+	}
+};
+
+QTEST_MAIN(TestQt6Test)
+#include "test.moc"
+''')
+
+def build(bld):
+	# According to the Qt6 documentation:
+	#   Qt classes in foo.h   -> declare foo.h as a header to be processed by moc
+	#			    add the resulting moc_foo.cpp to the source files
+	#   Qt classes in foo.cpp -> include foo.moc at the end of foo.cpp
+	#
+	bld(
+		features = 'qt6 cxx cxxprogram',
+		use      = 'QT6CORE QT6GUI QT6SVG QT6WIDGETS',
+		source   = 'main.cpp res.qrc but.ui foo.cpp',
+		moc      = 'foo.h',
+		target   = 'window',
+		includes = '.',
+		lang     = bld.path.ant_glob('linguist/*.ts'),
+		langname = 'somefile', # include the .qm files from somefile.qrc
+	)
+
+	if bld.env.XYZ_QT6_TESTS:
+		# Example of integration of Qt6 Unit tests using Qt6Test using waf_unit_test
+		bld(
+			features = 'qt6 cxx cxxprogram test',
+			use      = 'QT6CORE QT6GUI QT6WIDGETS QT6TEST',
+			defines  = 'QT_WIDGETS_LIB',
+			source   = 'foo.cpp testqt6.cpp',
+			moc      = 'foo.h',
+			target   = 'footest',
+			includes = '.',
+			# ut_str   = './${SRC} -o test-report.xml,xunitxml', # put output to a xunit xml
+		)
+
+		bld.add_post_fun(print_test_results)	# print output of test runner to user
+
+
+def print_test_results(bld):
+	lst = getattr(bld, 'utest_results', [])
+	if not lst:
+		return
+	for result in lst:
+		print(result.out.decode('utf-8'))
+		print(result.err.decode('utf-8'))
+
