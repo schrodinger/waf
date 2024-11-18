@@ -534,45 +534,76 @@ def configure(self):
 	uses = 'QT6CORE' if self.want_qt6 else 'QT5CORE'
 
 	# Qt6 requires C++17 (https://www.qt.io/blog/qt-6.0-released)
-	flag_list = []
+	flags_candidates = []
 	if self.env.CXX_NAME == 'msvc':
 		stdflag = '/std:c++17' if self.want_qt6 else '/std:c++11'
-		flag_list = [[], ['/Zc:__cplusplus', '/permissive-', stdflag]]
+		flags_candidates = [[], ['/Zc:__cplusplus', '/permissive-', stdflag]]
 	else:
+		# Qt5 and fallback: guess the flags
+		stdflag = '-std=c++17' if self.want_qt6 else '-std=c++11'
+		flags_candidates = [[], ['-fPIE'], ['-fPIC'], [stdflag], [stdflag, '-fPIE'], [stdflag, '-fPIC']]
+
 		# Qt6 has a new build option called 'FEATURE_no_direct_extern_access',
 		# which some distros might use. There's no need to do this on Windows
 		# as Windows doesn't have this issue by nature of dllexport and dllimport.
-
-		relocflag = None
-		if self.want_qt6 and self.env.DEST_OS != 'win32':
+		#
+		# Qt6 does not raise any build error when PIC and PIE are both
+		# used at the same time which is the default for some compilers
+		if self.want_qt6 and self.env.DEST_BINFMT == 'elf':
 			path = self.qt_pkg_config_path()
-
 			mkspecsdir = self.check_cfg(
 				package = 'Qt6Platform',
+				msg = 'Checking for mkspecsdir',
 				args = ['--variable', 'mkspecsdir'],
+				mandatory = False,
 				pkg_config_path = path
-			).strip()
+			)
 
-			with open(os.path.join(mkspecsdir, 'qconfig.pri')) as file:
-				for line in file:
-					if line.startswith('QT_CONFIG') and 'no_direct_extern_access' in line:
-						if self.env.CXX_NAME == 'gcc':
-							relocflag = '-mno-direct-extern-access'
-						elif self.env.CXX_NAME == 'clang':
-							relocflag = '-fno-direct-access-external-data'
+			if mkspecsdir:
+				mkspecsdir = mkspecsdir.strip()
+			else:
+				mkspecsdir = ''
+				self.to_log('Could not detect the Qt6 configuration')
 
-		stdflag = '-std=c++17' if self.want_qt6 else '-std=c++11'
-		flag_list = [[], ['-fPIE'], ['-fPIC'], [stdflag], [stdflag, '-fPIE'], [stdflag, '-fPIC']]
-		if relocflag != None:
-			flag_list = [x + [relocflag] for x in flag_list]
-			Logs.warn('Qt has been built with `no_direct_extern_access` enabled, this feature has only been tested with ld.bfd as linker.\nUse ld.gold/ld.mold/ld.lld at your own risk. If you do not know what linker you are using, you are most likely using ld.bfd.')
+			qt6_flags = []
+			qconfig_pri = os.path.join(mkspecsdir, 'qconfig.pri')
 
-	for flag in flag_list:
+			self.start_msg('Reading qconfig.pri')
+			try:
+				with open(qconfig_pri, 'r') as f:
+					txt = f.read()
+				self.end_msg('ok')
+			except OSError as e:
+				self.end_msg('unavailable (incomplete detection)', 'YELLOW')
+				self.to_log('File %r is unreadable %r' % (qconfig_pri, e))
+			else:
+				for line in txt.splitlines():
+					if line.startswith('QT_CONFIG'):
+						if '.disabled_features' in line:
+							continue
+
+						if 'no_direct_extern_access' in line:
+							if self.env.CXX_NAME == 'gcc':
+								qt6_flags.append('-mno-direct-extern-access')
+							elif self.env.CXX_NAME == 'clang':
+								qt6_flags.append('-fno-direct-access-external-data')
+							self.to_log('Qt has been built with `no_direct_extern_access` enabled, this feature has only been tested with ld.bfd as linker.\nUse ld.gold/ld.mold/ld.lld at your own risk. If you do not know what linker you are using, you are most likely using ld.bfd.')
+
+						if 'reduce_relocations' in line:
+							if self.env.CXX_NAME in ('gcc', 'clang'):
+								qt6_flags.append('-fPIC')
+
+			if qt6_flags:
+				# Try this configuration first
+				qt6_flags.append(stdflag)
+				flags_candidates.insert(0, qt6_flags)
+
+	for flags in flags_candidates:
 		msg = 'See if Qt files compile '
-		if flag:
-			msg += 'with %s' % flag
+		if flags:
+			msg += 'with %r' % (' '.join(flags))
 		try:
-			self.check(features=feature + ' cxx', use=uses, uselib_store=feature, cxxflags=flag, fragment=frag, msg=msg)
+			self.check(features=feature + ' cxx', use=uses, uselib_store=feature, cxxflags=flags, fragment=frag, msg=msg)
 		except self.errors.ConfigurationError:
 			pass
 		else:

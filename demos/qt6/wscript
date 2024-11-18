@@ -15,7 +15,10 @@ def options(opt):
 
 def configure(conf):
 	conf.want_qt6 = True
+
+	# set a mandatory list of libraries for the detection
 	#conf.qt6_vars = ['Qt6Core', 'Qt6Gui', 'Qt6Widgets', 'Qt6Test', 'Qt6Svg']
+
 	conf.load('compiler_cxx qt5 waf_unit_test')
 	#conf.env.append_value('CXXFLAGS', ['-g']) # test
 
@@ -23,7 +26,6 @@ def configure(conf):
 		# While Qt6 detects most Qt tools, most of them are optional
 		conf.fatal('lrelease was not found')
 
-	# These tests would run on Ubuntu but not on other platforms
 	conf.check(
 		define_name  = 'XYZ_QT6_TESTS',
 		mandatory    = False,
