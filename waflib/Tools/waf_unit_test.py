@@ -314,7 +314,7 @@ def options(opt):
 	opt.add_option('--clear-failed', action='store_true', default=False,
 		help='Force failed unit tests to run again next time', dest='clear_failed_tests')
 	opt.add_option('--testcmd', action='store', default=False, dest='testcmd',
-		help='Run the unit tests using the test-cmd string example "--testcmd="valgrind --error-exitcode=1 %s" to run under valgrind')
+		help='Run the unit tests using the test-cmd string. For example --testcmd="valgrind --error-exitcode=1 %%s" to run under valgrind')
 	opt.add_option('--dump-test-scripts', action='store_true', default=False,
 		help='Create python scripts to help debug tests', dest='dump_test_scripts')
 
