@@ -459,7 +459,7 @@ def validate_c(self, kw):
 			kw['compile_mode'] = 'cxx'
 
 	if not 'type' in kw:
-		kw['type'] = 'cprogram'
+		kw['type'] = '%sprogram' % kw['compile_mode']
 
 	if not 'features' in kw:
 		if not 'header_name' in kw or kw.get('link_header_test', True):
@@ -564,6 +564,15 @@ def validate_c(self, kw):
 		self.undefine(kw['define_name'])
 	if not 'msg' in kw:
 		self.fatal('missing "msg" in conf.check(...)')
+
+	if 'cflags' in kw and not 'c' in kw['features']:
+		self.fatal('Invalid cflags in non-c configuration test, specify conf.check(features=)')
+	if 'cxxflags' in kw and not 'cxx' in kw['features']:
+		self.fatal('Invalid cxxflags in non-cxx configuration test, specify conf.check(features=)')
+	if 'fcflags' in kw and not 'fc' in kw['features']:
+		self.fatal('Invalid fcflags in non-fc configuration test, specify conf.check(features=)')
+	if 'dflags' in kw and not 'd' in kw['features']:
+		self.fatal('Invalid dflags in non-d configuration test, specify conf.check(features=)')
 
 @conf
 def post_check(self, *k, **kw):
