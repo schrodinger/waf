@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 # encoding: utf-8
-# Thomas Nagy, 2006-2018 (ita)
-# Rafaël Kooi, 2023 (RA-Kooi)
+# vim: ts=4 noexpandtab
+# Thomas Nagy, 2006-2024 (ita)
+# Rafaël Kooi, 2023-2024 (RA-Kooi)
 
 """
 This tool helps with finding Qt5 and Qt6 tools and libraries,
@@ -54,7 +55,7 @@ You also need to edit your sources accordingly:
   include the .moc file.
   This is regarded as the best practice (and provides much faster
   compilations).
-  It also implies that the include paths have beenset properly.
+  It also implies that the include paths have been set properly.
 
 - to have the include paths added automatically, use the following::
 
