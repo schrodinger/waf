@@ -147,4 +147,4 @@ The following tools provide support for specific compilers or configurations. Mo
 	tools/lua
 	tools/md5_tstamp
 	tools/nobuild
-
+	tools/wafcache

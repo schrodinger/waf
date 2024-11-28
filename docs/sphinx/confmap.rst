@@ -5,10 +5,6 @@ Configuration methods
 
 .. include:: confmap_example.txt
 
-.. _add_as_needed: tools/c_config.html#waflib.Tools.c_config.add_as_needed
-
-* add_as_needed_
-
 .. _add_os_flags: Configure.html#waflib.Configure.add_os_flags
 
 * add_os_flags_
@@ -417,14 +413,6 @@ Configuration methods
 
 * gather_vswhere_versions_
 
-.. _gather_wince_targets: tools/msvc.html#waflib.Tools.msvc.gather_wince_targets
-
-* gather_wince_targets_
-
-.. _gather_winphone_targets: tools/msvc.html#waflib.Tools.msvc.gather_winphone_targets
-
-* gather_winphone_targets_
-
 .. _gather_wsdk_versions: tools/msvc.html#waflib.Tools.msvc.gather_wsdk_versions
 
 * gather_wsdk_versions_
@@ -513,13 +501,21 @@ Configuration methods
 
 * get_msvc_versions_
 
-.. _get_python_variables: tools/python.html#waflib.Tools.python.get_python_variables
-
-* get_python_variables_
-
 .. _get_suncc_version: tools/c_config.html#waflib.Tools.c_config.get_suncc_version
 
 * get_suncc_version_
+
+.. _get_sysconfig_path: tools/python.html#waflib.Tools.python.get_sysconfig_path
+
+* get_sysconfig_path_
+
+.. _get_sysconfig_variable: tools/python.html#waflib.Tools.python.get_sysconfig_variable
+
+* get_sysconfig_variable_
+
+.. _get_sysconfig_variables: tools/python.html#waflib.Tools.python.get_sysconfig_variables
+
+* get_sysconfig_variables_
 
 .. _get_xlc_version: tools/c_config.html#waflib.Tools.c_config.get_xlc_version
 
@@ -648,6 +644,10 @@ Configuration methods
 .. _python_cross_compile: tools/python.html#waflib.Tools.python.python_cross_compile
 
 * python_cross_compile_
+
+.. _qt_pkg_config_path: tools/qt5.html#waflib.Tools.qt5.qt_pkg_config_path
+
+* qt_pkg_config_path_
 
 .. _read_csshlib: tools/cs.html#waflib.Tools.cs.read_csshlib
 
