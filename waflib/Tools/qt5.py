@@ -537,7 +537,6 @@ def configure(self):
 	self.qt_check_pkg_config()
 	self.qt_check_static()
 	self.set_qt5_libs_to_check()
-	self.set_qt5_defines()
 	self.find_qt5_libraries()
 	self.add_qt5_rpath()
 	self.simplify_qt5_libs()
@@ -959,17 +958,6 @@ def set_qt5_libs_to_check(self):
 	qtextralibs = getattr(Options.options, 'qtextralibs', None)
 	if qtextralibs:
 		self.qt_vars.extend(qtextralibs.split(','))
-
-@conf
-def set_qt5_defines(self):
-	qt_ver = '6' if self.want_qt6 else '5'
-
-	if sys.platform != 'win32':
-		return
-
-	for x in self.qt_vars:
-		y=x.replace('Qt' + qt_ver, 'Qt')[2:].upper()
-		self.env.append_unique('DEFINES_%s' % x.upper(), 'QT_%s_LIB' % y)
 
 @conf
 def set_qt_env(self):
