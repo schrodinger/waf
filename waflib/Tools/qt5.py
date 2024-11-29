@@ -771,7 +771,7 @@ def set_qt5_libs_dir(self):
 			qtdir = self.cmd_and_log(env.QMAKE + ['-query', 'QT_INSTALL_PREFIX']).strip()
 			qtlibs = os.path.join(qtdir, 'lib')
 
-	self.msg('Found the Qt' + qt_ver + ' library path', qtlibs)
+	self.msg('Checking for Qt' + qt_ver + ' library path', qtlibs)
 
 	env.QTLIBS = qtlibs
 
