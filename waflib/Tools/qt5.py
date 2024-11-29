@@ -90,7 +90,9 @@ For Qt6 use the qt6_vars attribute.
 
 This can speed up configuration phase if needed libraries are
 known beforehand, can improve detection on systems with a
-sparse QT5/Qt6 libraries installation (ie. NIX).
+sparse QT5/Qt6 libraries installation (ie. NIX). The libraries
+requested are required to be found unless they're also specified in
+the qt5_vars_opt attribute (qt6_vars_opt when using Qt6).
 
 To force static library detection use:
 
@@ -522,12 +524,19 @@ def configure(self):
 	else:
 		self.qt_vars = Utils.to_list(getattr(self, 'qt5_vars', []))
 
+	if self.want_qt6:
+		self.qt_vars_opt = Utils.to_list(getattr(self, 'qt6_vars_opt', []))
+	else:
+		self.qt_vars_opt = Utils.to_list(getattr(self, 'qt5_vars_opt', []))
+
 	qt_ver = '6' if self.want_qt6 else '5'
 
 	if len(self.qt_vars) > 0:
 		core = 'Qt%sCore' % qt_ver
 		if not core in self.qt_vars:
 			self.fatal('%s not found in qt%s_vars, Qt will not work without it.' % (core, qt_ver))
+
+	qt_vars = list(self.qt_vars)
 
 	try:
 		if self.environ.get('QT' + qt_ver + '_XCOMPILE'):
@@ -547,6 +556,19 @@ def configure(self):
 	self.find_qt5_libraries()
 	self.add_qt5_rpath()
 	self.simplify_qt5_libs()
+
+	if len(qt_vars) > 0:
+		missing = list()
+
+		for var in qt_vars:
+			if var in self.qt_vars_opt:
+				continue
+
+			if not self.env['HAVE_%s' % var.upper()]:
+				missing.append(var)
+
+		if len(missing) > 0:
+			self.fatal('Missing Qt libraries: %s' % missing)
 
 	# warn about this during the configuration too
 	if not has_xml:
