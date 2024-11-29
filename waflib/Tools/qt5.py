@@ -527,6 +527,7 @@ def configure(self):
 	self.set_qt_env()
 	self.set_qt5_libs_dir()
 	self.set_qt_makespecs_dir()
+	self.qt_check_pkg_config()
 	self.set_qt5_libs_to_check()
 	self.set_qt5_defines()
 	self.find_qt5_libraries()
@@ -825,11 +826,7 @@ def find_qt5_libraries(self):
 	qtincludes = self.QTINCLUDES
 	force_static = self.environ.get('QT' + qt_ver + '_FORCE_STATIC')
 
-	try:
-		if self.environ.get('QT' + qt_ver + '_XCOMPILE'):
-			self.fatal('QT' + qt_ver + '_XCOMPILE Disables pkg-config detection')
-		self.check_cfg(atleast_pkgconfig_version='0.1')
-	except self.errors.ConfigurationError:
+	if not self.qt_use_pkg_config:
 		for i in self.qt_vars:
 			uselib = i.upper()
 			if Utils.unversioned_sys_platform() == 'darwin':
@@ -956,6 +953,16 @@ def set_qt_env(self):
 	env.QTARCHDATA = self.cmd_and_log(env.QMAKE + ['-query', 'QT_INSTALL_ARCHDATA']).strip()
 	env.QTINCLUDES = self.environ.get('QT%s_INCLUDES' % ver) or self.cmd_and_log(env.QMAKE + ['-query', 'QT_INSTALL_HEADERS']).strip()
 	env.QTBINS = self.cmd_and_log(env.QMAKE + ['-query', 'QT_INSTALL_BINS']).strip()
+
+@conf
+def qt_check_pkg_config(self):
+	qconfig_pri = os.path.join(self.env.QTMKSPECSDIR, 'qconfig.pri')
+	qt_config = self.read_pri(qconfig_pri)
+
+	if 'pkg-config' in qt_config['enabled_features'] and 'PKGCONFIG' in self.env:
+		self.qt_use_pkg_config = True
+	else:
+		self.qt_use_pkg_config = False
 
 @conf
 def set_qt_makespecs_dir(self):
