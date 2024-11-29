@@ -522,6 +522,13 @@ def configure(self):
 	else:
 		self.qt_vars = Utils.to_list(getattr(self, 'qt5_vars', []))
 
+	qt_ver = '6' if self.want_qt6 else '5'
+
+	if len(self.qt_vars) > 0:
+		core = 'Qt%sCore' % qt_ver
+		if not core in self.qt_vars:
+			self.fatal('%s not found in qt%s_vars, Qt will not work without it.' % (core, qt_ver))
+
 	try:
 		if self.environ.get('QT' + qt_ver + '_XCOMPILE'):
 			self.fatal('QT' + qt_ver + '_XCOMPILE Disables pkg-config detection')
