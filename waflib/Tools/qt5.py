@@ -894,6 +894,7 @@ def add_qt5_rpath(self):
 	"""
 	Defines rpath entries for Qt libraries
 	"""
+	qt_ver = '6' if self.want_qt6 else '5'
 	env = self.env
 	if getattr(Options.options, 'want_rpath', False):
 		def process_rpath(vars_, coreval):
@@ -904,12 +905,12 @@ def add_qt5_rpath(self):
 					core = env[coreval]
 					accu = []
 					for lib in value:
-						if var != 'QTCORE':
+						if var != 'QT%sCORE' % qt_ver:
 							if lib in core:
 								continue
 						accu.append('-Wl,--rpath='+lib)
 					env['RPATH_' + var] = accu
-		process_rpath(self.qt_vars, 'LIBPATH_QTCORE')
+		process_rpath(self.qt_vars, 'LIBPATH_QT%sCORE' % qt_ver)
 
 @conf
 def set_qt5_libs_to_check(self):
