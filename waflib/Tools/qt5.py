@@ -791,14 +791,16 @@ def set_qt5_libs_dir(self):
 	env = self.env
 	qt_ver = '6' if self.want_qt6 else '5'
 
-	qtlibs = getattr(Options.options, 'qtlibs', None) or self.environ.get('QT' + qt_ver + '_LIBDIR')
+	qtlibs = str()
+	try:
+		qtlibs = self.cmd_and_log(env.QMAKE + ['-query', 'QT_INSTALL_LIBS']).strip()
+	except Errors.WafError:
+		# CHECK (Rafaël Kooi): Is this still necessary?
+		qtdir = self.cmd_and_log(env.QMAKE + ['-query', 'QT_INSTALL_PREFIX']).strip()
+		qtlibs = os.path.join(qtdir, 'lib')
 
-	if not qtlibs:
-		try:
-			qtlibs = self.cmd_and_log(env.QMAKE + ['-query', 'QT_INSTALL_LIBS']).strip()
-		except Errors.WafError:
-			qtdir = self.cmd_and_log(env.QMAKE + ['-query', 'QT_INSTALL_PREFIX']).strip()
-			qtlibs = os.path.join(qtdir, 'lib')
+		if not os.path.exists(qtlibs):
+			self.fatal('Unable to find Qt lib directory.')
 
 	self.msg('Checking for Qt' + qt_ver + ' library path', qtlibs)
 
@@ -1195,7 +1197,7 @@ def options(opt):
 	"""
 	opt.add_option('--want-rpath', action='store_true', default=False, dest='want_rpath', help='enable the rpath for qt libraries')
 
-	for i in 'qtdir qtbin qtlibs'.split():
+	for i in 'qtdir qtbin'.split():
 		opt.add_option('--'+i, type=str, default='', dest=i)
 
 	opt.add_option('--translate', action='store_true', help='collect translation strings', dest='trans_qt5', default=False)
