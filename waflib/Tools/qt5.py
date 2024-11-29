@@ -533,6 +533,7 @@ def configure(self):
 	self.set_qt_env()
 	self.set_qt5_libs_dir()
 	self.set_qt_makespecs_dir()
+	self.set_qt_makespec()
 	self.qt_check_pkg_config()
 	self.qt_check_static()
 	self.set_qt5_libs_to_check()
@@ -1052,6 +1053,41 @@ def set_qt_makespecs_dir(self):
 	self.env.QTMKSPECSDIR = mkspecsdir
 
 @conf
+def set_qt_makespec(self):
+	# qmake makes no effort to detect what the actual mkspec is, by which I mean,
+	# it gives back the makespec Qt has been built with. We don't detect it and
+	# shouldn't either. Attempts at detecting the correct mkspec ended up being
+	# way too complex. The user will know what the correct mkspec is.
+	ver = '6' if self.want_qt6 else '5'
+
+	mkspec = getattr(Options.options, 'mkspec', None) or self.environ.get('QMAKESPEC')
+
+	if not mkspec:
+		try:
+			# We want XSPEC, as that is the spec used to build the target libraries.
+			mkspec = self.cmd_and_log(self.env.QMAKE + ['-query', 'QMAKE_XSPEC']).strip()
+			self.msg('Determining Qt%s makespec' % ver, mkspec)
+
+			mkspecdir = os.path.join(self.env.QTMKSPECSDIR, mkspec)
+
+			if not os.path.exists(mkspecdir):
+				mkspecdir = os.path.join(self.env.QTMKSPECSDIR, 'unsupported', mkspec)
+		except Errors.WafError:
+			self.fatal('Unable to determine Qt%s makespec' % ver)
+	else:
+		mkspecdir = os.path.join(self.env.QTMKSPECSDIR, mkspec)
+
+		if not os.path.exists(mkspecdir):
+			mkspecdir = os.path.join(self.env.QTMKSPECSDIR, 'unsupported', mkspec)
+			if not os.path.exists(mkspecdir):
+				self.fatal('Unable to determine Qt%s makespec' % ver)
+
+		self.msg('Determining Qt%s makespec' % ver, mkspec)
+
+	self.env.QTMKSPEC = mkspec
+	self.env.QTMKSPECPATH = mkspecdir
+
+@conf
 def read_pri(self, path):
 	"""
 	Read information from a .pri file as a dict.
@@ -1105,9 +1141,11 @@ def options(opt):
 	Command-line options
 	"""
 	opt.add_option('--want-rpath', action='store_true', default=False, dest='want_rpath', help='enable the rpath for qt libraries')
+
 	for i in 'qtdir qtbin qtlibs'.split():
 		opt.add_option('--'+i, type=str, default='', dest=i)
 
 	opt.add_option('--translate', action='store_true', help='collect translation strings', dest='trans_qt5', default=False)
 	opt.add_option('--qtextralibs', type=str, default='', dest='qtextralibs', help='additional qt libraries on the system to add to default ones, comma separated')
 
+	opt.add_option('--makespec', type=str, default=None, dest='mkspec', help='override the qt makespec')
