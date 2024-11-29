@@ -870,11 +870,12 @@ def simplify_qt5_libs(self):
 	Since library paths make really long command-lines,
 	and since everything depends on qtcore, remove the qtcore ones from qtgui, etc
 	"""
+	qt_ver = '6' if self.want_qt6 else '5'
 	env = self.env
 	def process_lib(vars_, coreval):
 		for d in vars_:
 			var = d.upper()
-			if var == 'QTCORE':
+			if var == 'QT%sCORE' % qt_ver:
 				continue
 
 			value = env['LIBPATH_'+var]
@@ -886,7 +887,7 @@ def simplify_qt5_libs(self):
 						continue
 					accu.append(lib)
 				env['LIBPATH_'+var] = accu
-	process_lib(self.qt_vars, 'LIBPATH_QTCORE')
+	process_lib(self.qt_vars, 'LIBPATH_QT%sCORE' % qt_ver)
 
 @conf
 def add_qt5_rpath(self):
