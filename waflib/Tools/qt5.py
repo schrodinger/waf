@@ -93,7 +93,16 @@ known beforehand, can improve detection on systems with a
 sparse QT5/Qt6 libraries installation (ie. NIX).
 
 To force static library detection use:
-QT5_XCOMPILE=1 QT5_FORCE_STATIC=1 waf configure
+
+    QT5_FORCE_STATIC=1 waf configure
+
+This should not be needed if your Qt installation is built without
+shared libraries. If you still need this when no shared libraries
+are present, please file a bug report.
+
+To disable pkg-config use:
+
+    QT5_XCOMPILE=1 waf configure
 
 To use Qt6 set the want_qt6 attribute, ie:
 
@@ -525,6 +534,7 @@ def configure(self):
 	self.set_qt5_libs_dir()
 	self.set_qt_makespecs_dir()
 	self.qt_check_pkg_config()
+	self.qt_check_static()
 	self.set_qt5_libs_to_check()
 	self.set_qt5_defines()
 	self.find_qt5_libraries()
@@ -766,11 +776,11 @@ def set_qt5_libs_dir(self):
 	env.QTLIBS = qtlibs
 
 @conf
-def find_single_qt5_lib(self, name, uselib, qtlibs, qtincludes, force_static):
+def find_single_qt5_lib(self, name, uselib, qtlibs, qtincludes):
 	env = self.env
 	qt_ver = '6' if self.want_qt6 else '5'
 
-	if force_static:
+	if self.qt_static:
 		exts = ('.a', '.lib')
 		prefix = 'STLIB'
 	else:
@@ -821,7 +831,6 @@ def find_qt5_libraries(self):
 	qt_ver = '6' if self.want_qt6 else '5'
 
 	qtincludes = self.QTINCLUDES
-	force_static = self.environ.get('QT' + qt_ver + '_FORCE_STATIC')
 
 	if not self.qt_use_pkg_config:
 		for i in self.qt_vars:
@@ -840,14 +849,17 @@ def find_qt5_libraries(self):
 					self.msg('Checking for %s' % i, False, 'YELLOW')
 				env.append_unique('INCLUDES_' + uselib, os.path.join(env.QTLIBS, frameworkName, 'Headers'))
 			else:
-				ret = self.find_single_qt5_lib(i, uselib, env.QTLIBS, qtincludes, force_static)
-				if not force_static and not ret:
-					ret = self.find_single_qt5_lib(i, uselib, env.QTLIBS, qtincludes, True)
+				ret = self.find_single_qt5_lib(i, uselib, env.QTLIBS, qtincludes)
 				self.msg('Checking for %s' % i, ret, 'GREEN' if ret else 'YELLOW')
 	else:
 		path = self.qt_pkg_config_path()
 		for i in self.qt_vars:
-			self.check_cfg(package=i, args='--cflags --libs', mandatory=False, force_static=force_static, pkg_config_path=path)
+			self.check_cfg(
+				package=i,
+				args='--cflags --libs',
+				mandatory=False,
+				force_static=self.qt_static,
+				pkg_config_path=path)
 
 @conf
 def simplify_qt5_libs(self):
@@ -857,13 +869,14 @@ def simplify_qt5_libs(self):
 	"""
 	qt_ver = '6' if self.want_qt6 else '5'
 	env = self.env
-	def process_lib(vars_, coreval):
+
+	def process(vars_, prefix, coreval):
 		for d in vars_:
 			var = d.upper()
 			if var == 'QT%sCORE' % qt_ver:
 				continue
 
-			value = env['LIBPATH_'+var]
+			value = env[prefix + var]
 			if value:
 				core = env[coreval]
 				accu = []
@@ -871,8 +884,13 @@ def simplify_qt5_libs(self):
 					if lib in core:
 						continue
 					accu.append(lib)
-				env['LIBPATH_'+var] = accu
-	process_lib(self.qt_vars, 'LIBPATH_QT%sCORE' % qt_ver)
+				env[prefix + var] = accu
+
+	pre = ''
+	if self.qt_static:
+		pre = 'ST'
+
+	process(self.qt_vars, pre + 'LIBPATH_', '%sLIBPATH_QT%sCORE' % (pre, qt_ver))
 
 @conf
 def add_qt5_rpath(self):
@@ -881,6 +899,10 @@ def add_qt5_rpath(self):
 	"""
 	qt_ver = '6' if self.want_qt6 else '5'
 	env = self.env
+
+	if self.qt_static:
+		return
+
 	if getattr(Options.options, 'want_rpath', False):
 		def process_rpath(vars_, coreval):
 			for d in vars_:
@@ -966,6 +988,31 @@ def qt_check_pkg_config(self):
 		self.qt_use_pkg_config = True
 	else:
 		self.qt_use_pkg_config = False
+
+@conf
+def qt_check_static(self):
+	qt_ver = '6' if self.want_qt6 else '5'
+
+	qconfig_pri = os.path.join(self.env.QTMKSPECSDIR, 'qconfig.pri')
+	qt_config = self.read_pri(qconfig_pri)
+
+	static = False
+	if 'static' in qt_config['enabled_features']:
+		static = True
+
+	dynamic = False
+	if 'shared' in qt_config['enabled_features']:
+		dynamic = True
+
+	force_static = self.environ.get('QT%s_FORCE_STATIC' % qt_ver)
+
+	if force_static and self.static == False:
+		self.fatal('Qt libraries are forced static, but Qt has not been built statically.')
+
+	if force_static or (static and not dynamic):
+		self.qt_static = True
+	else:
+		self.qt_static = False
 
 @conf
 def set_qt_makespecs_dir(self):
