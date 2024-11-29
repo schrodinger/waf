@@ -924,6 +924,9 @@ def simplify_qt5_libs(self):
 		pre = 'ST'
 
 	process(self.qt_vars, pre + 'LIBPATH_', '%sLIBPATH_QT%sCORE' % (pre, qt_ver))
+	process(self.qt_vars, pre + 'LIB_', '%sLIB_QT%sCORE' % (pre, qt_ver))
+	process(self.qt_vars, 'DEFINES_', 'DEFINES_QT%sCORE' % qt_ver)
+	process(self.qt_vars, 'INCLUDES_', 'INCLUDES_QT%sCORE' % qt_ver)
 
 @conf
 def add_qt5_rpath(self):
