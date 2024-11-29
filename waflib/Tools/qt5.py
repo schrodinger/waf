@@ -79,12 +79,10 @@ For Qt6 replace the QT5_ prefix with QT6_.
 
 The detection uses pkg-config on Linux by default. The list of
 libraries to be requested to pkg-config is formulated by scanning
-in the QTLIBS directory (that can be passed via --qtlibs or by
-setting the environment variable QT5_LIBDIR or QT6_LIBDIR otherwise is
-derived by querying qmake for QT_INSTALL_LIBS directory) for
-shared/static libraries present.
-Alternatively the list of libraries to be requested via pkg-config
-can be set using the qt5_vars attribute, ie:
+in the 'mkspecs/modules' directory of the detected Qt installation
+for shared/static libraries present.
+Alternatively the list of libraries to be requested can be set using
+the qt5_vars attribute, ie:
 
       conf.qt5_vars = ['Qt5Core', 'Qt5Gui', 'Qt5Widgets', 'Qt5Test'];
 
@@ -92,8 +90,7 @@ For Qt6 use the qt6_vars attribute.
 
 This can speed up configuration phase if needed libraries are
 known beforehand, can improve detection on systems with a
-sparse QT5/Qt6 libraries installation (ie. NIX) and can improve
-detection of some header-only Qt modules (ie. Qt5UiPlugin).
+sparse QT5/Qt6 libraries installation (ie. NIX).
 
 To force static library detection use:
 QT5_XCOMPILE=1 QT5_FORCE_STATIC=1 waf configure
@@ -904,31 +901,37 @@ def add_qt5_rpath(self):
 def set_qt5_libs_to_check(self):
 	qt_ver = '6' if self.want_qt6 else '5'
 
+	# We are forced to find all modules that are installed, because some modules
+	# will have a different name from their actual library. Like Qt5's qmltest
+	# module being the library Qt5QuickTest. Without doing this libraries like
+	# those will be unfindable. This is also the case for Qt6.
+
+	self.qt_var2mod = dict()
+
+	populate = False
 	if not self.qt_vars:
-		dirlst = Utils.listdir(self.env.QTLIBS)
+		populate = True
 
-		pat = self.env.cxxshlib_PATTERN
-		if Utils.is_win32:
-			pat = pat.replace('.dll', '.lib')
-		if self.environ.get('QT' + qt_ver + '_FORCE_STATIC'):
-			pat = self.env.cxxstlib_PATTERN
-		if Utils.unversioned_sys_platform() == 'darwin':
-			pat = r"%s\.framework"
+	modules_dir = os.path.join(self.env.QTMKSPECSDIR, 'modules')
+	dirlst = Utils.listdir(modules_dir)
 
-		if self.want_qt6:
-			# match Qt6Name or QtName but not Qt5Name
-			mid_pattern = pat % 'Qt6?(?P<name>[^5]\\w+)'
-		else:
-			# match Qt5Name or QtName but not Qt6Name
-			mid_pattern = pat % 'Qt5?(?P<name>[^6]\\w+)'
-		re_qt = re.compile('^%s$' % mid_pattern)
+	for x in sorted(dirlst):
+		if x.startswith('qt_lib_') and (x.endswith('_private.pri') or x.endswith('impl.pri')):
+			continue
+		if not x.startswith('qt_lib_'):
+			continue
 
-		for x in sorted(dirlst):
-			m = re_qt.match(x)
-			if m:
-				self.qt_vars.append("Qt%s%s" % (qt_ver, m.group('name')))
-		if not self.qt_vars:
-			self.fatal('cannot find any Qt%s library (%r)' % (qt_ver, self.env.QTLIBS))
+		module = self.read_pri(os.path.join(modules_dir, x))
+		var = module['module'][0]
+		mod = module['QT_MODULES'][0]
+
+		self.qt_var2mod[var] = mod
+
+		if populate:
+			self.qt_vars.append(var)
+
+	if not self.qt_var2mod:
+		self.fatal('cannot find any Qt%s library (%r)' % (qt_ver, modules_dir))
 
 	qtextralibs = getattr(Options.options, 'qtextralibs', None)
 	if qtextralibs:
