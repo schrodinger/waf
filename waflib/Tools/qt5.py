@@ -560,36 +560,30 @@ def configure(self):
 		# Qt6 does not raise any build error when PIC and PIE are both
 		# used at the same time which is the default for some compilers
 		if self.want_qt6 and self.env.DEST_BINFMT == 'elf':
-			path = self.qt_pkg_config_path()
 			mkspecsdir = self.env.QTMKSPECSDIR
 
 			qt6_flags = []
 			qconfig_pri = os.path.join(mkspecsdir, 'qconfig.pri')
 
+			qt_config = dict()
 			self.start_msg('Reading qconfig.pri')
 			try:
-				with open(qconfig_pri, 'r') as f:
-					txt = f.read()
+				qt_config = self.read_pri(qconfig_pri)
 				self.end_msg('ok')
 			except OSError as e:
 				self.end_msg('unavailable (incomplete detection)', 'YELLOW')
 				self.to_log('File %r is unreadable %r' % (qconfig_pri, e))
 			else:
-				for line in txt.splitlines():
-					if line.startswith('QT_CONFIG'):
-						if '.disabled_features' in line:
-							continue
+				if 'no_direct_extern_access' in qt_config['QT_CONFIG']:
+					if self.env.CXX_NAME == 'gcc':
+						qt6_flags.append('-mno-direct-extern-access')
+					elif self.env.CXX_NAME == 'clang':
+						qt6_flags.append('-fno-direct-access-external-data')
+					self.to_log('Qt has been built with `no_direct_extern_access` enabled, this feature has only been tested with ld.bfd as linker.\nUse ld.gold/ld.mold/ld.lld at your own risk. If you do not know what linker you are using, you are most likely using ld.bfd.')
 
-						if 'no_direct_extern_access' in line:
-							if self.env.CXX_NAME == 'gcc':
-								qt6_flags.append('-mno-direct-extern-access')
-							elif self.env.CXX_NAME == 'clang':
-								qt6_flags.append('-fno-direct-access-external-data')
-							self.to_log('Qt has been built with `no_direct_extern_access` enabled, this feature has only been tested with ld.bfd as linker.\nUse ld.gold/ld.mold/ld.lld at your own risk. If you do not know what linker you are using, you are most likely using ld.bfd.')
-
-						if 'reduce_relocations' in line:
-							if self.env.CXX_NAME in ('gcc', 'clang'):
-								qt6_flags.append('-fPIC')
+				if 'reduce_relocations' in qt_config['QT_CONFIG']:
+					if self.env.CXX_NAME in ('gcc', 'clang'):
+						qt6_flags.append('-fPIC')
 
 			if qt6_flags:
 				# Try this configuration first
@@ -961,6 +955,7 @@ def set_qt_env(self):
 
 	env.QTARCHDATA = self.cmd_and_log(env.QMAKE + ['-query', 'QT_INSTALL_ARCHDATA']).strip()
 	env.QTINCLUDES = self.environ.get('QT%s_INCLUDES' % ver) or self.cmd_and_log(env.QMAKE + ['-query', 'QT_INSTALL_HEADERS']).strip()
+	env.QTBINS = self.cmd_and_log(env.QMAKE + ['-query', 'QT_INSTALL_BINS']).strip()
 
 @conf
 def set_qt_makespecs_dir(self):
@@ -998,6 +993,55 @@ def set_qt_makespecs_dir(self):
 		self.fatal('Unable to find the Qt%s mkspecs directory' % ver)
 
 	self.env.QTMKSPECSDIR = mkspecsdir
+
+@conf
+def read_pri(self, path):
+	"""
+	Read information from a .pri file as a dict.
+
+	:param path: Path to the pri file
+	:type path: str
+	"""
+	ver = '6' if self.want_qt6 else '5'
+
+	# Lines have a format of QT.$lib_name.$key = $value, or $key = $value
+	# = can also be += or -=. This regex grabs the $key and $value components.
+	regex = r'^(QT\.\w+\.){0,1}(?P<key>\w+) *\+{0,1}= *(?P<val>.+)?'
+	engine = re.compile(regex)
+
+	result = dict()
+	with open(path, 'r') as f:
+		for line in f:
+			if line.strip() == '':
+				continue
+
+			matches = engine.match(line)
+			if len(matches.groups()) > 0:
+				match = matches.groupdict()
+				values = Utils.to_list(match['val'])
+
+				def replace(value):
+					value = value.replace('$$QT_MODULE_LIB_BASE', self.env.QTLIBS)
+					value = value.replace('$$QT_MODULE_INCLUDE_BASE', self.env.QTINCLUDES)
+
+					# CHECK (Rafaël Kooi): Should this be QT_INSTALL_LIBEXEC instead?
+					value = value.replace('$$QT_MODULE_BIN_BASE', self.env.QTBINS)
+
+					return value
+
+				if values != None:
+					result[match['key']] = list(map(replace, values))
+				else:
+					result[match['key']] = list()
+
+	if 'module' in result and len(result['module']) == 0:
+		result['module'] = ['Qt' + ver + result['name'][0][2:]]
+
+		# Qt5 does not specify CONFIG in (some of?) its modules.
+		if not 'CONFIG' in result:
+			result['CONFIG'] = ['no_link']
+
+	return result
 
 def options(opt):
 	"""
