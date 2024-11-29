@@ -776,37 +776,65 @@ def set_qt5_libs_dir(self):
 	env.QTLIBS = qtlibs
 
 @conf
-def find_single_qt5_lib(self, name, uselib, qtlibs, qtincludes):
+def find_single_qt5_lib(self, name, uselib):
 	env = self.env
 	qt_ver = '6' if self.want_qt6 else '5'
 
 	if self.qt_static:
-		exts = ('.a', '.lib')
 		prefix = 'STLIB'
 	else:
-		exts = ('.so', '.lib')
 		prefix = 'LIB'
 
-	def lib_names():
-		for x in exts:
-			for k in ('', qt_ver) if Utils.is_win32 else ['']:
-				for p in ('lib', ''):
-					yield (p, name, k, x)
+	modules_dir = os.path.join(self.env.QTMKSPECSDIR, 'modules')
 
-	for tup in lib_names():
-		k = ''.join(tup)
-		path = os.path.join(qtlibs, k)
-		if os.path.exists(path):
-			if env.DEST_OS == 'win32':
-				libval = ''.join(tup[:-1])
-			else:
-				libval = name
-			env.append_unique(prefix + '_' + uselib, libval)
-			env.append_unique('%sPATH_%s' % (prefix, uselib), qtlibs)
-			env.append_unique('INCLUDES_' + uselib, qtincludes)
-			env.append_unique('INCLUDES_' + uselib, os.path.join(qtincludes, name.replace('Qt' + qt_ver, 'Qt')))
-			return k
-	return False
+	filename = os.path.join(modules_dir, 'qt_lib_%s.pri' % name)
+	if not os.path.exists(filename):
+		return False
+
+	this_module = self.read_pri(filename)
+
+	def parse_info(module):
+		deps = list(set(module['depends'])) # Some dependencies can be listed twice
+		includes = module['includes'] if 'includes' in module else []
+		defines = module['DEFINES'] if 'DEFINES' in module else []
+
+		if 'CONFIG' in module and 'no_link' in module['CONFIG']:
+			libs = []
+		else:
+			libs = module['module']
+
+		for dep in deps:
+			filename = os.path.join(modules_dir, 'qt_lib_%s.pri' % dep)
+			dep_mod = self.read_pri(filename)
+
+			dep_info = parse_info(dep_mod)
+			includes += dep_info['includes']
+			libs += dep_info['libs']
+			defines += dep_info['defines']
+
+		info = dict()
+		info['includes'] = includes
+		info['libs'] = libs
+		info['defines'] = defines
+
+		return info
+
+	info = parse_info(this_module)
+	includes = [self.env.QTMKSPECPATH] + list(set(info['includes']))
+	libs = list(set(info['libs']))
+	defines = list(set(info['defines']))
+
+	env['HAVE_' + uselib] = 1
+
+	if len(libs) > 0:
+		env.append_unique(prefix + '_' + uselib, libs)
+
+	env.append_unique('INCLUDES_' + uselib, includes)
+	env.append_unique('%sPATH_%s' % (prefix, uselib), this_module['libs'][0])
+	env.append_unique('DEFINES_' + uselib, defines)
+	env.append_unique('DEFINES', 'HAVE_%s=1' % uselib)
+
+	return 'yes'
 
 @conf
 def qt_pkg_config_path(self):
@@ -830,11 +858,16 @@ def find_qt5_libraries(self):
 	env = self.env
 	qt_ver = '6' if self.want_qt6 else '5'
 
-	qtincludes = self.QTINCLUDES
-
 	if not self.qt_use_pkg_config:
 		for i in self.qt_vars:
 			uselib = i.upper()
+
+			if not i in self.qt_var2mod:
+				self.msg('Checking for %s' % i, False)
+				continue
+
+			modname = self.qt_var2mod[i]
+
 			if Utils.unversioned_sys_platform() == 'darwin':
 				# Since at least qt 4.7.3 each library locates in separate directory
 				fwk = i.replace('Qt' + qt_ver, 'Qt')
@@ -849,7 +882,7 @@ def find_qt5_libraries(self):
 					self.msg('Checking for %s' % i, False, 'YELLOW')
 				env.append_unique('INCLUDES_' + uselib, os.path.join(env.QTLIBS, frameworkName, 'Headers'))
 			else:
-				ret = self.find_single_qt5_lib(i, uselib, env.QTLIBS, qtincludes)
+				ret = self.find_single_qt5_lib(modname, uselib)
 				self.msg('Checking for %s' % i, ret, 'GREEN' if ret else 'YELLOW')
 	else:
 		path = self.qt_pkg_config_path()
