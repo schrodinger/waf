@@ -517,6 +517,7 @@ def configure(self):
 		self.qt_vars = Utils.to_list(getattr(self, 'qt5_vars', []))
 
 	self.find_qt5_binaries()
+	self.set_qt_env()
 	self.set_qt5_libs_dir()
 	self.set_qt5_libs_to_check()
 	self.set_qt5_defines()
@@ -831,7 +832,7 @@ def find_qt5_libraries(self):
 	env = self.env
 	qt_ver = '6' if self.want_qt6 else '5'
 
-	qtincludes =  self.environ.get('QT' + qt_ver + '_INCLUDES') or self.cmd_and_log(env.QMAKE + ['-query', 'QT_INSTALL_HEADERS']).strip()
+	qtincludes = self.QTINCLUDES
 	force_static = self.environ.get('QT' + qt_ver + '_FORCE_STATIC')
 
 	try:
@@ -956,6 +957,13 @@ def set_qt5_defines(self):
 	for x in self.qt_vars:
 		y=x.replace('Qt' + qt_ver, 'Qt')[2:].upper()
 		self.env.append_unique('DEFINES_%s' % x.upper(), 'QT_%s_LIB' % y)
+
+@conf
+def set_qt_env(self):
+	env = self.env
+	ver = '6' if self.want_qt6 else '5'
+
+	env.QTINCLUDES = self.environ.get('QT%s_INCLUDES' % ver) or self.cmd_and_log(env.QMAKE + ['-query', 'QT_INSTALL_HEADERS']).strip()
 
 def options(opt):
 	"""
