@@ -1032,7 +1032,7 @@ def set_qt_env(self):
 	ver = '6' if self.want_qt6 else '5'
 
 	env.QTARCHDATA = self.cmd_and_log(env.QMAKE + ['-query', 'QT_INSTALL_ARCHDATA']).strip()
-	env.QTINCLUDES = self.environ.get('QT%s_INCLUDES' % ver) or self.cmd_and_log(env.QMAKE + ['-query', 'QT_INSTALL_HEADERS']).strip()
+	env.QTINCLUDES = self.cmd_and_log(env.QMAKE + ['-query', 'QT_INSTALL_HEADERS']).strip()
 	env.QTBINS = self.cmd_and_log(env.QMAKE + ['-query', 'QT_INSTALL_BINS']).strip()
 
 @conf
