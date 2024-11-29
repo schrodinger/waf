@@ -516,9 +516,17 @@ def configure(self):
 	else:
 		self.qt_vars = Utils.to_list(getattr(self, 'qt5_vars', []))
 
+	try:
+		if self.environ.get('QT' + qt_ver + '_XCOMPILE'):
+			self.fatal('QT' + qt_ver + '_XCOMPILE Disables pkg-config detection')
+		self.check_cfg(atleast_pkgconfig_version='0.1')
+	except self.errors.ConfigurationError:
+		pass
+
 	self.find_qt5_binaries()
 	self.set_qt_env()
 	self.set_qt5_libs_dir()
+	self.set_qt_makespecs_dir()
 	self.set_qt5_libs_to_check()
 	self.set_qt5_defines()
 	self.find_qt5_libraries()
@@ -553,19 +561,7 @@ def configure(self):
 		# used at the same time which is the default for some compilers
 		if self.want_qt6 and self.env.DEST_BINFMT == 'elf':
 			path = self.qt_pkg_config_path()
-			mkspecsdir = self.check_cfg(
-				package = 'Qt6Platform',
-				msg = 'Checking for mkspecsdir',
-				args = ['--variable', 'mkspecsdir'],
-				mandatory = False,
-				pkg_config_path = path
-			)
-
-			if mkspecsdir:
-				mkspecsdir = mkspecsdir.strip()
-			else:
-				mkspecsdir = ''
-				self.to_log('Could not detect the Qt6 configuration')
+			mkspecsdir = self.env.QTMKSPECSDIR
 
 			qt6_flags = []
 			qconfig_pri = os.path.join(mkspecsdir, 'qconfig.pri')
@@ -963,7 +959,45 @@ def set_qt_env(self):
 	env = self.env
 	ver = '6' if self.want_qt6 else '5'
 
+	env.QTARCHDATA = self.cmd_and_log(env.QMAKE + ['-query', 'QT_INSTALL_ARCHDATA']).strip()
 	env.QTINCLUDES = self.environ.get('QT%s_INCLUDES' % ver) or self.cmd_and_log(env.QMAKE + ['-query', 'QT_INSTALL_HEADERS']).strip()
+
+@conf
+def set_qt_makespecs_dir(self):
+	ver = '6' if self.want_qt6 else '5'
+
+	if self.want_qt6 and 'PKGCONFIG' in self.env:
+		path = self.qt_pkg_config_path()
+
+		self.in_msg = 1 # Disable output
+		mkspecsdir = self.check_cfg(
+			package = 'Qt6Platform',
+			args = ['--variable', 'mkspecsdir'],
+			pkg_config_path = path,
+			mandatory = False).strip()
+		self.in_msg = 0 # Re-enable output
+
+		found = mkspecsdir != ''
+		if found:
+			self.msg(
+				'Checking for Qt%s mkspecs path' % ver,
+				mkspecsdir if found else False)
+
+			self.env.QTMKSPECSDIR = mkspecsdir
+			return
+
+	mkspecsdir = os.path.join(self.env.QTARCHDATA, 'mkspecs')
+
+	found = os.path.exists(mkspecsdir)
+	self.msg(
+		'Checking for Qt%s mkspecs path' % ver,
+		mkspecsdir if found else 'not found',
+		color = 'GREEN' if found else 'YELLOW')
+
+	if not found:
+		self.fatal('Unable to find the Qt%s mkspecs directory' % ver)
+
+	self.env.QTMKSPECSDIR = mkspecsdir
 
 def options(opt):
 	"""
