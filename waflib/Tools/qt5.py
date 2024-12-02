@@ -120,7 +120,7 @@ except ImportError:
 else:
 	has_xml = True
 
-import os, sys, re
+import os, re
 from waflib.Tools import cxx
 from waflib import Build, Task, Utils, Options, Errors, Context
 from waflib.TaskGen import feature, after_method, extension, before_method
@@ -536,49 +536,22 @@ def configure(self):
 		if not core in self.qt_vars:
 			self.fatal('%s not found in qt%s_vars, Qt will not work without it.' % (core, qt_ver))
 
-	qt_vars = list(self.qt_vars)
-
-	try:
-		if self.environ.get('QT' + qt_ver + '_XCOMPILE'):
-			self.fatal('QT' + qt_ver + '_XCOMPILE Disables pkg-config detection')
-		self.check_cfg(atleast_pkgconfig_version='0.1')
-	except self.errors.ConfigurationError:
-		pass
-
 	self.find_qt5_binaries()
 	self.set_qt_env()
 	self.set_qt5_libs_dir()
 	self.set_qt_makespecs_dir()
 	self.set_qt_makespec()
-	self.qt_check_pkg_config()
 	self.qt_check_static()
 	self.set_qt5_libs_to_check()
 	self.find_qt5_libraries()
 	self.add_qt5_rpath()
 	self.simplify_qt5_libs()
 
-	if len(qt_vars) > 0:
-		missing = list()
-
-		for var in qt_vars:
-			if var in self.qt_vars_opt:
-				continue
-
-			if not self.env['HAVE_%s' % var.upper()]:
-				missing.append(var)
-
-		if len(missing) > 0:
-			self.fatal('Missing Qt libraries: %s' % missing)
-
 	# warn about this during the configuration too
 	if not has_xml:
 		Logs.error('No xml.sax support was found, rcc dependencies will be incomplete!')
 
 	feature = 'qt6' if self.want_qt6 else 'qt5'
-
-	# Qt5 may be compiled with '-reduce-relocations' which requires dependent programs to have -fPIE or -fPIC?
-	frag = '#include <QMap>\nint main(int argc, char **argv) {QMap<int,int> m;return m.keys().size();}\n'
-	uses = 'QT6CORE' if self.want_qt6 else 'QT5CORE'
 
 	# Qt6 requires C++17 (https://www.qt.io/blog/qt-6.0-released)
 	flags_candidates = []
@@ -602,7 +575,7 @@ def configure(self):
 			qt6_flags = []
 			qconfig_pri = os.path.join(mkspecsdir, 'qconfig.pri')
 
-			qt_config = dict()
+			qt_config = {}
 			self.start_msg('Reading qconfig.pri')
 			try:
 				qt_config = self.read_pri(qconfig_pri)
@@ -626,6 +599,9 @@ def configure(self):
 				# Try this configuration first
 				qt6_flags.append(stdflag)
 				flags_candidates.insert(0, qt6_flags)
+
+	frag = '#include <QMap>\nint main(int argc, char **argv) {QMap<int,int> m;return m.keys().size();}\n'
+	uses = 'QT6CORE' if self.want_qt6 else 'QT5CORE'
 
 	for flags in flags_candidates:
 		msg = 'See if Qt files compile '
@@ -791,7 +767,7 @@ def set_qt5_libs_dir(self):
 	env = self.env
 	qt_ver = '6' if self.want_qt6 else '5'
 
-	qtlibs = str()
+	qtlibs = ""
 	try:
 		qtlibs = self.cmd_and_log(env.QMAKE + ['-query', 'QT_INSTALL_LIBS']).strip()
 	except Errors.WafError:
@@ -807,9 +783,8 @@ def set_qt5_libs_dir(self):
 	env.QTLIBS = qtlibs
 
 @conf
-def find_single_qt5_lib(self, name, uselib):
+def configure_single_qt_lib(self, name, uselib):
 	env = self.env
-	qt_ver = '6' if self.want_qt6 else '5'
 
 	if self.qt_static:
 		prefix = 'STLIB'
@@ -843,7 +818,7 @@ def find_single_qt5_lib(self, name, uselib):
 			libs += dep_info['libs']
 			defines += dep_info['defines']
 
-		info = dict()
+		info = {}
 		info['includes'] = includes
 		info['libs'] = libs
 		info['defines'] = defines
@@ -888,6 +863,20 @@ def qt_pkg_config_path(self):
 def find_qt5_libraries(self):
 	env = self.env
 	qt_ver = '6' if self.want_qt6 else '5'
+	try:
+		if self.environ.get('QT' + qt_ver + '_XCOMPILE'):
+			self.fatal('QT' + qt_ver + '_XCOMPILE Disables pkg-config detection')
+		self.check_cfg(atleast_pkgconfig_version='0.1')
+	except self.errors.ConfigurationError:
+		pass
+
+	qconfig_pri = os.path.join(self.env.QTMKSPECSDIR, 'qconfig.pri')
+	qt_config = self.read_pri(qconfig_pri)
+
+	if 'pkg-config' in qt_config['enabled_features'] and 'PKGCONFIG' in self.env:
+		self.qt_use_pkg_config = True
+	else:
+		self.qt_use_pkg_config = False
 
 	if not self.qt_use_pkg_config:
 		for i in self.qt_vars:
@@ -913,7 +902,7 @@ def find_qt5_libraries(self):
 					self.msg('Checking for %s' % i, False, 'YELLOW')
 				env.append_unique('INCLUDES_' + uselib, os.path.join(env.QTLIBS, frameworkName, 'Headers'))
 			else:
-				ret = self.find_single_qt5_lib(modname, uselib)
+				ret = self.configure_single_qt_lib(modname, uselib)
 				self.msg('Checking for %s' % i, ret, 'GREEN' if ret else 'YELLOW')
 	else:
 		path = self.qt_pkg_config_path()
@@ -995,7 +984,7 @@ def set_qt5_libs_to_check(self):
 	# module being the library Qt5QuickTest. Without doing this libraries like
 	# those will be unfindable. This is also the case for Qt6.
 
-	self.qt_var2mod = dict()
+	self.qt_var2mod = {}
 
 	populate = False
 	if not self.qt_vars:
@@ -1029,21 +1018,9 @@ def set_qt5_libs_to_check(self):
 @conf
 def set_qt_env(self):
 	env = self.env
-	ver = '6' if self.want_qt6 else '5'
-
 	env.QTARCHDATA = self.cmd_and_log(env.QMAKE + ['-query', 'QT_INSTALL_ARCHDATA']).strip()
 	env.QTINCLUDES = self.cmd_and_log(env.QMAKE + ['-query', 'QT_INSTALL_HEADERS']).strip()
 	env.QTBINS = self.cmd_and_log(env.QMAKE + ['-query', 'QT_INSTALL_BINS']).strip()
-
-@conf
-def qt_check_pkg_config(self):
-	qconfig_pri = os.path.join(self.env.QTMKSPECSDIR, 'qconfig.pri')
-	qt_config = self.read_pri(qconfig_pri)
-
-	if 'pkg-config' in qt_config['enabled_features'] and 'PKGCONFIG' in self.env:
-		self.qt_use_pkg_config = True
-	else:
-		self.qt_use_pkg_config = False
 
 @conf
 def qt_check_static(self):
@@ -1077,13 +1054,12 @@ def set_qt_makespecs_dir(self):
 	if self.want_qt6 and 'PKGCONFIG' in self.env:
 		path = self.qt_pkg_config_path()
 
-		self.in_msg = 1 # Disable output
 		mkspecsdir = self.check_cfg(
 			package = 'Qt6Platform',
 			args = ['--variable', 'mkspecsdir'],
 			pkg_config_path = path,
+			quiet = True,
 			mandatory = False).strip()
-		self.in_msg = 0 # Re-enable output
 
 		found = mkspecsdir != ''
 		if found:
@@ -1154,16 +1130,15 @@ def read_pri(self, path):
 
 	# Lines have a format of QT.$lib_name.$key = $value, or $key = $value
 	# = can also be += or -=. This regex grabs the $key and $value components.
-	regex = r'^(QT\.\w+\.){0,1}(?P<key>\w+) *\+{0,1}= *(?P<val>.+)?'
-	engine = re.compile(regex)
+	keyval_re = re.compile(r'^(QT\.\w+\.){0,1}(?P<key>\w+) *\+{0,1}= *(?P<val>.+)?')
 
-	result = dict()
+	result = {}
 	with open(path, 'r') as f:
 		for line in f:
 			if line.strip() == '':
 				continue
 
-			matches = engine.match(line)
+			matches = keyval_re.match(line)
 			if len(matches.groups()) > 0:
 				match = matches.groupdict()
 				values = Utils.to_list(match['val'])
