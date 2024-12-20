@@ -142,7 +142,7 @@ EXT_UI  = ['.ui']
 File extension for the user interface (.ui) files
 """
 
-EXT_QT5 = ['.cpp', '.cc', '.cxx', '.C']
+EXT_QT5 = ['.cpp', '.cc', '.cxx', '.C', '.c++']
 """
 File extensions of C++ files that may require a .moc processing
 """
