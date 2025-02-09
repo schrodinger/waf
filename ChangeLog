@@ -1,3 +1,9 @@
+NEW IN WAF 2.1.5
+----------------
+* Enable Clang as assembler
+* Improve Qt detection
+* Add msvc/arm targets
+
 NEW IN WAF 2.1.4
 ----------------
 * Prevent subprocesses from disrupting the main build process through inherited stdin
