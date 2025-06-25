@@ -547,6 +547,9 @@ def configure(self):
 	if not has_xml:
 		Logs.error('No xml.sax support was found, rcc dependencies will be incomplete!')
 
+	if self.env.NO_QT5_DETECT:
+		return
+
 	feature = 'qt6' if self.want_qt6 else 'qt5'
 
 	# Qt6 requires C++17 (https://www.qt.io/blog/qt-6.0-released)
