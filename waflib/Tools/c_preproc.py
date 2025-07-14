@@ -1093,7 +1093,17 @@ def get_header_nodepaths(includes):
 	# bld nodes may be subdirs thereof. The best example is
 	# $SCHRODINGER/$MMSHARE/include directory, and a build node might be
 	# $SCHRODINGER/$MMSHARE/canvaslibs
+	#
+	# NOTE: After enabling Package Factory builds, all thirdparty libs will be
+	# located in the $SCHRODINGER directory, so we should explicitly exclude them
+
 	schrodinger = os.path.abspath(os.environ['SCHRODINGER'])
 	schrodinger_src = os.path.abspath(os.environ['SCHRODINGER_SRC'])
-	nodepaths=[x for x in includes if os.path.abspath(x.abspath()).startswith(schrodinger) or os.path.abspath(x.abspath()).startswith(schrodinger_src)]
+	schrodinger_lib = os.path.abspath(os.environ['SCHRODINGER_LIB']) # PF directory
+
+	def _is_selected_inc_path(inc_path):
+		inc_path = os.path.abspath(x.abspath())
+		return (inc_path.startswith(schrodinger) or inc_path.startswith(schrodinger_src)) and not inc_path.startswith(schrodinger_lib)
+
+	nodepaths=[x for x in includes if _is_selected_inc_path(x)]
 	return nodepaths
