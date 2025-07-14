@@ -1103,7 +1103,7 @@ def get_header_nodepaths(includes):
 
 	def _is_selected_inc_path(inc_path):
 		inc_path = os.path.abspath(inc_path.abspath())
-		return (inc_path.startswith(schrodinger) or inc_path.startswith(schrodinger_src)) and not inc_path.startswith(schrodinger_lib)
+		return inc_path.startswith((schrodinger, schrodinger_src)) and not inc_path.startswith(schrodinger_lib)
 
 	nodepaths=[x for x in includes if _is_selected_inc_path(x)]
 	return nodepaths
