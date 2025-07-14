@@ -1102,7 +1102,7 @@ def get_header_nodepaths(includes):
 	schrodinger_lib = os.path.abspath(os.environ['SCHRODINGER_LIB']) # PF directory
 
 	def _is_selected_inc_path(inc_path):
-		inc_path = os.path.abspath(x.abspath())
+		inc_path = os.path.abspath(inc_path.abspath())
 		return (inc_path.startswith(schrodinger) or inc_path.startswith(schrodinger_src)) and not inc_path.startswith(schrodinger_lib)
 
 	nodepaths=[x for x in includes if _is_selected_inc_path(x)]
