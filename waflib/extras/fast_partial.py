@@ -54,12 +54,15 @@ SKIPPABLE = ['cshlib', 'cxxshlib', 'cstlib', 'cxxstlib', 'cprogram', 'cxxprogram
 
 TSTAMP_DB = '.wafpickle_tstamp_db_file'
 
+# Shared node class for all proxies to ensure pickle compatibility
+_shared_nod3 = type('Nod3', (waflib.Node.Node,), {})
+_shared_nod3.__module__ = 'waflib.Node'
+
 class bld_proxy(object):
 	def __init__(self, bld):
 		object.__setattr__(self, 'bld', bld)
 
-		object.__setattr__(self, 'node_class', type('Nod3', (waflib.Node.Node,), {}))
-		self.node_class.__module__ = 'waflib.Node'
+		object.__setattr__(self, 'node_class', _shared_nod3)
 		self.node_class.ctx = self
 
 		object.__setattr__(self, 'root', self.node_class('', None))
