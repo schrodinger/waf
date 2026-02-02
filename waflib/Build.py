@@ -286,6 +286,7 @@ class BuildContext(Context.Context):
 		else:
 			try:
 				Node.pickle_lock.acquire()
+				old_nod3 = getattr(Node, 'Nod3', None)
 				Node.Nod3 = self.node_class
 				try:
 					data = cPickle.loads(data)
@@ -295,6 +296,11 @@ class BuildContext(Context.Context):
 					for x in SAVED_ATTRS:
 						setattr(self, x, data.get(x, {}))
 			finally:
+				if old_nod3 is None:
+					if hasattr(Node, 'Nod3'):
+						delattr(Node, 'Nod3')
+				else:
+					Node.Nod3 = old_nod3
 				Node.pickle_lock.release()
 
 		self.init_dirs()
@@ -311,9 +317,15 @@ class BuildContext(Context.Context):
 
 		try:
 			Node.pickle_lock.acquire()
+			old_nod3 = getattr(Node, 'Nod3', None)
 			Node.Nod3 = self.node_class
 			x = cPickle.dumps(data, PROTOCOL)
 		finally:
+			if old_nod3 is None:
+				if hasattr(Node, 'Nod3'):
+					delattr(Node, 'Nod3')
+			else:
+				Node.Nod3 = old_nod3
 			Node.pickle_lock.release()
 
 		Utils.writef(db + '.tmp', x, m='wb')

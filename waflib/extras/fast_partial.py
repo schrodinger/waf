@@ -115,6 +115,7 @@ class bld_proxy(object):
 		else:
 			try:
 				waflib.Node.pickle_lock.acquire()
+				old_nod3 = getattr(waflib.Node, 'Nod3', None)
 				waflib.Node.Nod3 = self.node_class
 				try:
 					data = Build.cPickle.loads(data)
@@ -124,6 +125,11 @@ class bld_proxy(object):
 					for x in Build.SAVED_ATTRS:
 						object.__setattr__(self, x, data.get(x, {}))
 			finally:
+				if old_nod3 is None:
+					if hasattr(waflib.Node, 'Nod3'):
+						delattr(waflib.Node, 'Nod3')
+				else:
+					waflib.Node.Nod3 = old_nod3
 				waflib.Node.pickle_lock.release()
 		self.fix_nodes()
 
@@ -133,7 +139,9 @@ class bld_proxy(object):
 			data[x] = getattr(self, x)
 		db = os.path.join(self.variant_dir, Context.DBFILE + self.store_key)
 
-		with waflib.Node.pickle_lock:
+		try:
+			waflib.Node.pickle_lock.acquire()
+			old_nod3 = getattr(waflib.Node, 'Nod3', None)
 			waflib.Node.Nod3 = self.node_class
 			try:
 				x = Build.cPickle.dumps(data, Build.PROTOCOL)
@@ -145,6 +153,13 @@ class bld_proxy(object):
 						# but this should be the main source
 						node_deps[idx] = root.find_node(node.abspath())
 				x = Build.cPickle.dumps(data, Build.PROTOCOL)
+		finally:
+			if old_nod3 is None:
+				if hasattr(waflib.Node, 'Nod3'):
+					delattr(waflib.Node, 'Nod3')
+			else:
+				waflib.Node.Nod3 = old_nod3
+			waflib.Node.pickle_lock.release()
 
 		Logs.debug('rev_use: storing %s', db)
 		Utils.writef(db + '.tmp', x, m='wb')
@@ -342,7 +357,7 @@ class bld(Build.BuildContext):
 			if tg in needed_tgs:
 				return
 			needed_tgs.add(tg)
-			if tg.staleness == DONE:
+			if getattr(tg, 'staleness', DIRTY) == DONE:
 				Logs.debug('rev_use: marking up %r as needed', tg.name)
 				tg.staleness = NEEDED
 			for x in use_map[tg]:
@@ -460,7 +475,7 @@ def is_stale(self):
 def create_compiled_task(self, name, node):
 	# skip the creation of object files
 	# assumption: object-only targets are not skippable
-	if self.staleness == NEEDED:
+	if getattr(self, 'staleness', DIRTY) == NEEDED:
 		# only libraries/programs can skip object files
 		for x in SKIPPABLE:
 			if x in self.features:
@@ -478,7 +493,7 @@ def create_compiled_task(self, name, node):
 @after_method('apply_link')
 def apply_link_after(self):
 	# cprogram/cxxprogram might be unnecessary
-	if self.staleness != NEEDED:
+	if getattr(self, 'staleness', DIRTY) != NEEDED:
 		return
 	for tsk in self.tasks:
 		tsk.hasrun = Task.SKIPPED
