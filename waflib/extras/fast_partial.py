@@ -54,8 +54,6 @@ SKIPPABLE = ['cshlib', 'cxxshlib', 'cstlib', 'cxxstlib', 'cprogram', 'cxxprogram
 
 TSTAMP_DB = '.wafpickle_tstamp_db_file'
 
-SAVED_ATTRS = 'root node_sigs task_sigs imp_sigs raw_deps node_deps'.split()
-
 class bld_proxy(object):
 	def __init__(self, bld):
 		object.__setattr__(self, 'bld', bld)
@@ -65,9 +63,12 @@ class bld_proxy(object):
 		self.node_class.ctx = self
 
 		object.__setattr__(self, 'root', self.node_class('', None))
-		for x in SAVED_ATTRS:
+		for x in Build.SAVED_ATTRS:
 			if x != 'root':
 				object.__setattr__(self, x, {})
+
+		# Initialize local cache for h_file (two-layer cache system)
+		object.__setattr__(self, 'hashes_md5_tstamp', {})
 
 		self.fix_nodes()
 
@@ -120,7 +121,7 @@ class bld_proxy(object):
 				except Exception as e:
 					Logs.debug('rev_use: Could not pickle the build cache %s: %r', dbfn, e)
 				else:
-					for x in SAVED_ATTRS:
+					for x in Build.SAVED_ATTRS:
 						object.__setattr__(self, x, data.get(x, {}))
 			finally:
 				waflib.Node.pickle_lock.release()
@@ -503,8 +504,14 @@ def h_file(self):
 	filename = self.abspath()
 	st = os.stat(filename)
 
-	global_cache = self.ctx.bld.hashes_md5_tstamp
-	local_cache = self.ctx.hashes_md5_tstamp
+	# Handle both bld_proxy and regular BuildContext
+	if hasattr(self.ctx, 'bld'):
+		# self.ctx is a bld_proxy
+		global_cache = self.ctx.bld.hashes_md5_tstamp
+		local_cache = self.ctx.hashes_md5_tstamp
+	else:
+		# self.ctx is a regular BuildContext
+		global_cache = local_cache = self.ctx.hashes_md5_tstamp
 
 	if filename in global_cache:
 		# value already calculated in this build
