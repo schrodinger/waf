@@ -132,18 +132,37 @@ class bld_proxy(object):
 			data[x] = getattr(self, x)
 		db = os.path.join(self.variant_dir, Context.DBFILE + self.store_key)
 
+		# Normalize all nodes to belong to this proxy's node tree BEFORE pickling
+		# This ensures all nodes use the same node_class
+		root = data['root']
+
+		# Fix node_sigs: keys are nodes, values are signatures
+		if 'node_sigs' in data:
+			normalized_node_sigs = {}
+			for node, sig in data['node_sigs'].items():
+				if node.__class__ is not self.node_class:
+					node = root.find_node(node.abspath())
+				if node:  # Only include if node exists
+					normalized_node_sigs[node] = sig
+			data['node_sigs'] = normalized_node_sigs
+
+		# Fix node_deps: values are lists of nodes
+		if 'node_deps' in data:
+			for task_uid, node_list in data['node_deps'].items():
+				for idx, node in enumerate(node_list):
+					if node.__class__ is not self.node_class:
+						new_node = root.find_node(node.abspath())
+						if new_node:
+							node_list[idx] = new_node
+
 		with waflib.Node.pickle_lock:
 			waflib.Node.Nod3 = self.node_class
 			try:
 				x = Build.cPickle.dumps(data, Build.PROTOCOL)
-			except Build.cPickle.PicklingError:
-				root = data['root']
-				for node_deps in data['node_deps'].values():
-					for idx, node in enumerate(node_deps):
-						# there may be more cross-context Node objects to fix,
-						# but this should be the main source
-						node_deps[idx] = root.find_node(node.abspath())
-				x = Build.cPickle.dumps(data, Build.PROTOCOL)
+			except Build.cPickle.PicklingError as e:
+				# If we still have issues, log what failed
+				Logs.warn('Pickling failed even after normalization: %s', e)
+				raise
 
 		Logs.debug('rev_use: storing %s', db)
 		Utils.writef(db + '.tmp', x, m='wb')
