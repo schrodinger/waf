@@ -37,13 +37,13 @@ Use the following environment variables
 
   - A GCS, S3 or MINIO bucket::
 
-      gs://my-bucket/    # (uses gsutil command line tool or WAFCACHE_CMD)
+      gs://my-bucket/    # (uses gcloud storage command line tool or WAFCACHE_CMD)
       s3://my-bucket/    # (uses aws command line tool or WAFCACHE_CMD)
       minio://my-bucket/ # (uses mc command line tool or WAFCACHE_CMD)
 
 * WAFCACHE_CMD: bucket upload/download command, for example::
 
-    WAFCACHE_CMD="gsutil cp %{SRC} %{TGT}"
+    WAFCACHE_CMD="gcloud --quiet storage cp %{SRC} %{TGT}"
 
 * WAFCACHE_NO_PUSH: if set, disables pushing to the cache
 * WAFCACHE_VERBOSITY: if set, displays more detailed cache operations
@@ -59,8 +59,8 @@ depending on the operation (upload or download). For example, with::
 
 the following commands may be run::
 
-    gsutil cp build/myprogram  gs://mybucket/aa/aaaaa/1
-    gsutil cp gs://mybucket/bb/bbbbb/2 build/somefile
+    gcloud --quiet storage cp build/myprogram  gs://mybucket/aa/aaaaa/1
+    gcloud --quiet storage cp gs://mybucket/bb/bbbbb/2 build/somefile
 
 File cache
 ^^^^^^^^^^
@@ -116,6 +116,16 @@ except ImportError:
 
 if __name__ != '__main__':
 	from waflib import Task, Logs, Utils, Build
+
+def _bucket_join(*parts):
+	"""
+	Join remote bucket object path parts with URL separators.
+
+	Bucket cache paths are object names, not local filesystem paths. Using
+	os.path.join() writes backslashes into object names on Windows.
+	"""
+	return '/'.join(str(part).strip('/') for part in parts)
+
 
 def can_retrieve_cache(self):
 	"""
@@ -636,7 +646,7 @@ class bucket_cache(object):
 		elif CACHE_DIR.startswith('s3://'):
 			cmd = ['aws', 's3', 'cp', source, target]
 		elif CACHE_DIR.startswith('gs://'):
-			cmd = ['gsutil', 'cp', source, target]
+			cmd = ['gcloud', '--quiet', 'storage', 'cp', source, target]
 		else:
 			cmd = ['mc', 'cp', source, target]
 
@@ -649,7 +659,7 @@ class bucket_cache(object):
 	def copy_to_cache(self, sig, files_from, files_to):
 		try:
 			for i, x in enumerate(files_from):
-				dest = os.path.join(CACHE_DIR, sig[:2], sig, str(i))
+				dest = _bucket_join(CACHE_DIR, sig[:2], sig, str(i))
 				self.bucket_copy(x, dest)
 		except Exception:
 			return traceback.format_exc()
@@ -658,7 +668,7 @@ class bucket_cache(object):
 	def copy_from_cache(self, sig, files_from, files_to):
 		try:
 			for i, x in enumerate(files_to):
-				orig = os.path.join(CACHE_DIR, sig[:2], sig, str(i))
+				orig = _bucket_join(CACHE_DIR, sig[:2], sig, str(i))
 				self.bucket_copy(orig, x)
 		except EnvironmentError:
 			return traceback.format_exc()
