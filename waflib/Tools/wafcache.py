@@ -646,7 +646,9 @@ class bucket_cache(object):
 		elif CACHE_DIR.startswith('s3://'):
 			cmd = ['aws', 's3', 'cp', source, target]
 		elif CACHE_DIR.startswith('gs://'):
-			cmd = ['gcloud', '--quiet', 'storage', 'cp', source, target]
+			# Native Windows Python with shell=False does not resolve the extensionless gcloud wrapper.
+			bin = 'gcloud.cmd' if os.name == 'nt' else 'gcloud'
+			cmd = [bin, '--quiet', 'storage', 'cp', source, target]
 		else:
 			cmd = ['mc', 'cp', source, target]
 
