@@ -117,14 +117,16 @@ except ImportError:
 if __name__ != '__main__':
 	from waflib import Task, Logs, Utils, Build
 
-def _bucket_join(*parts):
+def _cache_join(*parts):
 	"""
-	Join remote bucket object path parts with URL separators.
+	Join cache path parts.
 
-	Bucket cache paths are object names, not local filesystem paths. Using
+	GCS and S3 cache paths are object names, not local filesystem paths. Using
 	os.path.join() writes backslashes into object names on Windows.
 	"""
-	return '/'.join(str(part).strip('/') for part in parts)
+	if CACHE_DIR.startswith('gs://') or CACHE_DIR.startswith('s3://'):
+		return '/'.join(str(part).strip('/') for part in parts)
+	return os.path.join(*parts)
 
 
 def can_retrieve_cache(self):
@@ -661,7 +663,7 @@ class bucket_cache(object):
 	def copy_to_cache(self, sig, files_from, files_to):
 		try:
 			for i, x in enumerate(files_from):
-				dest = _bucket_join(CACHE_DIR, sig[:2], sig, str(i))
+				dest = _cache_join(CACHE_DIR, sig[:2], sig, str(i))
 				self.bucket_copy(x, dest)
 		except Exception:
 			return traceback.format_exc()
@@ -670,7 +672,7 @@ class bucket_cache(object):
 	def copy_from_cache(self, sig, files_from, files_to):
 		try:
 			for i, x in enumerate(files_to):
-				orig = _bucket_join(CACHE_DIR, sig[:2], sig, str(i))
+				orig = _cache_join(CACHE_DIR, sig[:2], sig, str(i))
 				self.bucket_copy(orig, x)
 		except EnvironmentError:
 			return traceback.format_exc()
@@ -722,4 +724,3 @@ if __name__ == '__main__':
 			loop(service)
 		except KeyboardInterrupt:
 			break
-
