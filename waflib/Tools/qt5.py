@@ -169,9 +169,15 @@ class qxx(Task.classes['cxx']):
 		if self.moc_done:
 			return Task.Task.runnable_status(self)
 		else:
-			for t in self.run_after:
-				if not t.hasrun:
-					return Task.ASK_LATER
+			# Postpone qxx until implicit producers and moc tasks are complete.
+			# Let the base implementation calculate the signature first. In
+			# addition to checking existing dependencies, this discovers implicit
+			# dependencies and adds their producers to run_after. If a producer is
+			# still running, the base implementation returns ASK_LATER.
+			status = Task.Task.runnable_status(self)
+			if status in (Task.ASK_LATER, Task.CANCEL_ME):
+				return status
+
 			self.add_moc_tasks()
 			return Task.Task.runnable_status(self)
 
